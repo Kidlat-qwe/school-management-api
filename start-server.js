@@ -1265,6 +1265,54 @@ app.get('/', (req, res) => {
         .form-row input {
           flex: 1;
         }
+        .delete-btn {
+          background: #e74c3c;
+          color: white;
+          border: none;
+          padding: 4px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        .delete-btn:hover {
+          background: #c0392b;
+        }
+        /* Add styles for the delete dialog */
+        .delete-dialog {
+          display: none;
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          z-index: 1000;
+        }
+        .delete-dialog h3 {
+          margin-top: 0;
+        }
+        .delete-dialog select {
+          width: 100%;
+          margin: 10px 0;
+          padding: 5px;
+        }
+        .delete-dialog .button-group {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          margin-top: 15px;
+        }
+        .overlay {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          z-index: 999;
+        }
       </style>
     </head>
     <body>
@@ -1286,7 +1334,10 @@ app.get('/', (req, res) => {
           <span class="path">/api/subjects</span>
           <div class="form-group">
             <input type="text" id="subjectName" placeholder="Subject Name">
-            <button onclick="addSubject()">Add Subject</button>
+            <div class="button-group">
+              <button onclick="addSubject()">Add Subject</button>
+              <button class="delete-btn" onclick="deleteSubject()">Delete Subject</button>
+            </div>
           </div>
           <div id="addSubjectResponse" class="response"></div>
         </div>
@@ -1311,7 +1362,10 @@ app.get('/', (req, res) => {
             <input type="text" id="section" placeholder="Section">
             <input type="text" id="schoolYear" placeholder="School Year">
             <input type="text" id="classDescription" placeholder="Description">
-            <button onclick="addClass()">Add Class</button>
+            <div class="button-group">
+              <button onclick="addClass()">Add Class</button>
+              <button class="delete-btn" onclick="deleteClass()">Delete Class</button>
+            </div>
           </div>
           <div id="addClassResponse" class="response"></div>
         </div>
@@ -1337,7 +1391,10 @@ app.get('/', (req, res) => {
             <input type="text" id="mname" placeholder="Middle Name">
             <input type="text" id="lname" placeholder="Last Name">
             <input type="text" id="gender" placeholder="Gender">
-            <button onclick="addTeacher()">Add Teacher</button>
+            <div class="button-group">
+              <button onclick="addTeacher()">Add Teacher</button>
+              <button class="delete-btn" onclick="deleteTeacher()">Delete Teacher</button>
+            </div>
           </div>
           <div id="addTeacherResponse" class="response"></div>
         </div>
@@ -1367,7 +1424,10 @@ app.get('/', (req, res) => {
               <input type="text" id="studentGender" placeholder="Gender">
               <input type="number" id="studentAge" placeholder="Age">
             </div>
-            <button onclick="addStudent()">Add Student</button>
+            <div class="button-group">
+              <button onclick="addStudent()">Add Student</button>
+              <button class="delete-btn" onclick="deleteStudent()">Delete Student</button>
+            </div>
           </div>
           <div id="addStudentResponse" class="response"></div>
         </div>
@@ -1615,7 +1675,122 @@ app.get('/', (req, res) => {
             fetchStudents();
           });
         }
+
+        // Delete functionality
+        function showDeleteDialog(dialogId) {
+          document.getElementById('overlay').style.display = 'block';
+          document.getElementById(dialogId).style.display = 'block';
+        }
+
+        function closeDeleteDialog(dialogId) {
+          document.getElementById('overlay').style.display = 'none';
+          document.getElementById(dialogId).style.display = 'none';
+        }
+
+        async function deleteSubject() {
+          const subjects = await apiCall('/api/subjects');
+          const select = document.getElementById('subjectSelect');
+          select.innerHTML = subjects.data.map(subject => (
+            '<option value="' + subject.subject_id + '">' + subject.subject_name + '</option>'
+          )).join('');
+          showDeleteDialog('deleteSubjectDialog');
+        }
+
+        async function deleteClass() {
+          const classes = await apiCall('/api/classes');
+          const select = document.getElementById('classSelect');
+          select.innerHTML = classes.data.map(cls => (
+            '<option value="' + cls.class_id + '">Grade ' + cls.grade_level + '-' + cls.section + ' (' + cls.school_year + ')</option>'
+          )).join('');
+          showDeleteDialog('deleteClassDialog');
+        }
+
+        async function deleteTeacher() {
+          const teachers = await apiCall('/api/teachers');
+          const select = document.getElementById('teacherSelect');
+          select.innerHTML = teachers.data.map(teacher => (
+            '<option value="' + teacher.teacher_id + '">' + teacher.fname + ' ' + teacher.lname + '</option>'
+          )).join('');
+          showDeleteDialog('deleteTeacherDialog');
+        }
+
+        async function deleteStudent() {
+          const students = await apiCall('/api/students');
+          const select = document.getElementById('studentSelect');
+          select.innerHTML = students.data.map(student => (
+            '<option value="' + student.student_id + '">' + student.fname + ' ' + student.lname + '</option>'
+          )).join('');
+          showDeleteDialog('deleteStudentDialog');
+        }
+
+        async function confirmDelete(type) {
+          const select = document.getElementById(type + 'Select');
+          const id = select.value;
+          
+          if (!id) {
+            alert('Please select an item to delete');
+            return;
+          }
+
+          if (confirm('Are you sure you want to delete this ' + type + '?')) {
+            try {
+              const response = await fetch('/api/' + type + 's/' + id, {
+                method: 'DELETE'
+              });
+              const result = await response.json();
+              
+              if (response.ok) {
+                alert(result.message || type + ' deleted successfully');
+                closeDeleteDialog('delete' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog');
+                // Refresh the list
+                window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
+              } else {
+                throw new Error(result.error || 'Failed to delete ' + type);
+              }
+            } catch (error) {
+              alert(error.message);
+            }
+          }
+        }
       </script>
+      <!-- Add delete dialogs -->
+      <div id="overlay" class="overlay"></div>
+      
+      <div id="deleteSubjectDialog" class="delete-dialog">
+        <h3>Delete Subject</h3>
+        <select id="subjectSelect"></select>
+        <div class="button-group">
+          <button onclick="closeDeleteDialog('deleteSubjectDialog')">Cancel</button>
+          <button class="delete-btn" onclick="confirmDelete('subject')">Delete</button>
+        </div>
+      </div>
+
+      <div id="deleteClassDialog" class="delete-dialog">
+        <h3>Delete Class</h3>
+        <select id="classSelect"></select>
+        <div class="button-group">
+          <button onclick="closeDeleteDialog('deleteClassDialog')">Cancel</button>
+          <button class="delete-btn" onclick="confirmDelete('class')">Delete</button>
+        </div>
+      </div>
+
+      <div id="deleteTeacherDialog" class="delete-dialog">
+        <h3>Delete Teacher</h3>
+        <select id="teacherSelect"></select>
+        <div class="button-group">
+          <button onclick="closeDeleteDialog('deleteTeacherDialog')">Cancel</button>
+          <button class="delete-btn" onclick="confirmDelete('teacher')">Delete</button>
+        </div>
+      </div>
+
+      <div id="deleteStudentDialog" class="delete-dialog">
+        <h3>Delete Student</h3>
+        <select id="studentSelect"></select>
+        <div class="button-group">
+          <button onclick="closeDeleteDialog('deleteStudentDialog')">Cancel</button>
+          <button class="delete-btn" onclick="confirmDelete('student')">Delete</button>
+        </div>
+      </div>
     </body>
     </html>
   `);
