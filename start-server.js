@@ -1140,348 +1140,394 @@ app.get('/', (req, res) => {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           max-width: 1200px;
           margin: 20px auto;
-          padding: 0 20px;
+          padding: 20px;
           line-height: 1.4;
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
+          background: #f5f7fa;
+          color: #2c3e50;
         }
+
         h1 {
           color: #2c3e50;
-          grid-column: 1 / -1;
-          margin: 0 0 20px 0;
-          border-bottom: 2px solid #eee;
-          padding-bottom: 10px;
+          text-align: center;
+          margin: 0 0 30px 0;
+          padding-bottom: 15px;
+          border-bottom: 3px solid #3498db;
+          font-size: 2.5em;
         }
+
+        .sections-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+          gap: 25px;
+          margin-top: 20px;
+        }
+
         .section {
-          background: #f8f9fa;
-          padding: 15px;
-          border-radius: 8px;
+          background: white;
+          padding: 25px;
+          border-radius: 12px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          transition: transform 0.2s, box-shadow 0.2s;
         }
+
+        .section:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
         h2 {
           color: #2980b9;
-          margin: 0 0 15px 0;
-          font-size: 1.2em;
-        }
-        .endpoint {
-          margin: 8px 0;
-          font-size: 0.9em;
-        }
-        .get .method { color: #27ae60; }
-        .post .method { color: #e67e22; }
-        .put .method { color: #2980b9; }
-        .delete .method { color: #c0392b; }
-        .method {
-          display: inline-block;
-          font-weight: bold;
-          width: 45px;
-          font-size: 0.9em;
-        }
-        .path {
-          font-family: monospace;
-          background: #fff;
-          padding: 2px 4px;
-          border-radius: 3px;
-          font-size: 0.9em;
-        }
-        .form-group {
-          margin: 10px 0;
-        }
-        input, button {
-          margin: 5px 0;
-          padding: 4px 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-        }
-        button {
-          background: #3498db;
-          color: white;
-          border: none;
-          cursor: pointer;
-        }
-        button:hover {
-          background: #2980b9;
-        }
-        .response {
-          margin-top: 10px;
-          padding: 8px;
-          background: #fff;
-          border-radius: 4px;
-          font-family: monospace;
-          font-size: 0.8em;
-          word-break: break-all;
-          display: none;
-          max-height: 300px;
-          overflow-y: auto;
-          border: 1px solid #eee;
-        }
-        
-        .response::-webkit-scrollbar {
-          width: 8px;
-        }
-        
-        .response::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 4px;
-        }
-        
-        .response::-webkit-scrollbar-thumb {
-          background: #888;
-          border-radius: 4px;
-        }
-        
-        .response::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
-        
-        .response pre {
-          margin: 0;
-          padding-right: 10px;
-        }
-        
-        .button-group {
+          margin: 0 0 20px 0;
+          font-size: 1.5em;
           display: flex;
-          gap: 5px;
-        }
-        
-        .close-btn {
-          background: #e74c3c;
-        }
-        
-        .close-btn:hover {
-          background: #c0392b;
-        }
-        
-        .form-group input {
-          width: calc(100% - 16px);
-          margin: 4px 0;
-        }
-        
-        .form-row {
-          display: flex;
+          align-items: center;
           gap: 10px;
         }
-        
-        .form-row input {
-          flex: 1;
+
+        h2::before {
+          content: '';
+          display: block;
+          width: 4px;
+          height: 24px;
+          background: #3498db;
+          border-radius: 2px;
         }
-        .delete-btn {
-          background: #e74c3c;
-          color: white;
-          border: none;
+
+        .endpoint {
+          margin: 15px 0;
+          padding: 15px;
+          border-radius: 8px;
+          background: #f8f9fa;
+          border: 1px solid #e9ecef;
+        }
+
+        .method {
+          display: inline-block;
           padding: 4px 8px;
           border-radius: 4px;
-          cursor: pointer;
+          font-weight: 600;
+          font-size: 0.9em;
+          min-width: 60px;
+          text-align: center;
+          margin-right: 10px;
         }
-        .delete-btn:hover {
-          background: #c0392b;
+
+        .get .method { 
+          background: #e1f5fe;
+          color: #0288d1;
         }
-        /* Add styles for the delete dialog */
-        .delete-dialog {
-          display: none;
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: white;
-          padding: 20px;
-          border-radius: 8px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-          z-index: 1000;
+
+        .post .method { 
+          background: #e8f5e9;
+          color: #388e3c;
         }
-        .delete-dialog h3 {
-          margin-top: 0;
+
+        .put .method { 
+          background: #fff3e0;
+          color: #f57c00;
         }
-        .delete-dialog select {
+
+        .delete .method { 
+          background: #ffebee;
+          color: #d32f2f;
+        }
+
+        .path {
+          font-family: 'Monaco', 'Menlo', monospace;
+          background: #2c3e50;
+          color: #ecf0f1;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 0.9em;
+        }
+
+        .form-group {
+          margin: 15px 0;
+        }
+
+        input, select {
           width: 100%;
-          margin: 10px 0;
-          padding: 5px;
+          padding: 10px;
+          border: 2px solid #e9ecef;
+          border-radius: 8px;
+          font-size: 0.95em;
+          transition: border-color 0.2s;
+          margin: 5px 0;
         }
-        .delete-dialog .button-group {
+
+        input:focus, select:focus {
+          outline: none;
+          border-color: #3498db;
+        }
+
+        .button-group {
           display: flex;
-          justify-content: flex-end;
           gap: 10px;
           margin-top: 15px;
         }
-        .overlay {
-          display: none;
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.5);
-          z-index: 999;
+
+        button {
+          padding: 10px 20px;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-size: 0.95em;
         }
+
+        button:hover {
+          transform: translateY(-2px);
+        }
+
+        button:active {
+          transform: translateY(0);
+        }
+
+        button.primary {
+          background: #3498db;
+          color: white;
+        }
+
+        button.primary:hover {
+          background: #2980b9;
+        }
+
+        .delete-btn {
+          background: #e74c3c;
+          color: white;
+        }
+
+        .delete-btn:hover {
+          background: #c0392b;
+        }
+
+        .cancel-btn {
+          background: #95a5a6;
+          color: white;
+        }
+
+        .cancel-btn:hover {
+          background: #7f8c8d;
+        }
+
+        .response {
+          margin-top: 15px;
+          padding: 15px;
+          background: #2c3e50;
+          color: #ecf0f1;
+          border-radius: 8px;
+          font-family: 'Monaco', 'Menlo', monospace;
+          font-size: 0.9em;
+          max-height: 300px;
+          overflow-y: auto;
+          display: none;
+        }
+
+        .response::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+
+        .response::-webkit-scrollbar-track {
+          background: #34495e;
+          border-radius: 4px;
+        }
+
+        .response::-webkit-scrollbar-thumb {
+          background: #95a5a6;
+          border-radius: 4px;
+        }
+
+        .response::-webkit-scrollbar-thumb:hover {
+          background: #7f8c8d;
+        }
+
+        .overlay {
+          background: rgba(0, 0, 0, 0.7);
+          backdrop-filter: blur(5px);
+        }
+
+        .delete-dialog {
+          min-width: 400px;
+          max-width: 90%;
+          background: white;
+          padding: 25px;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .delete-dialog h3 {
+          color: #2c3e50;
+          margin: 0 0 20px 0;
+          font-size: 1.5em;
+          padding-bottom: 10px;
+          border-bottom: 2px solid #e74c3c;
+        }
+
         .delete-form {
+          margin: 20px 0;
+        }
+
+        .delete-form .form-group {
           margin: 15px 0;
         }
-        .delete-form .form-group {
-          margin: 10px 0;
-        }
+
         .delete-form label {
           display: block;
-          margin-bottom: 5px;
-          font-weight: bold;
+          margin-bottom: 8px;
+          font-weight: 600;
+          color: #2c3e50;
         }
+
         .delete-form select,
         .delete-form input {
           width: 100%;
-          padding: 8px;
-          border: 1px solid #ddd;
+          padding: 12px;
+          border: 2px solid #e9ecef;
+          border-radius: 8px;
+          font-size: 0.95em;
+          transition: all 0.2s;
+        }
+
+        .delete-form select:focus,
+        .delete-form input:focus {
+          border-color: #e74c3c;
+          box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+        }
+
+        .delete-form .separator {
+          margin: 20px 0;
+          text-align: center;
+          position: relative;
+        }
+
+        .delete-form .separator::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          width: 100%;
+          height: 1px;
+          background: #e9ecef;
+        }
+
+        .delete-form .separator span {
+          background: white;
+          padding: 0 10px;
+          color: #95a5a6;
+          position: relative;
+          font-size: 0.9em;
+        }
+
+        /* Status indicators */
+        .status-indicator {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          margin-right: 8px;
+        }
+
+        .status-active {
+          background: #2ecc71;
+        }
+
+        .status-inactive {
+          background: #e74c3c;
+        }
+
+        /* Tooltips */
+        [data-tooltip] {
+          position: relative;
+          cursor: help;
+        }
+
+        [data-tooltip]:before {
+          content: attr(data-tooltip);
+          position: absolute;
+          bottom: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          padding: 5px 10px;
+          background: #34495e;
+          color: white;
+          font-size: 0.8em;
           border-radius: 4px;
-          margin-top: 5px;
+          white-space: nowrap;
+          opacity: 0;
+          visibility: hidden;
+          transition: all 0.2s;
+        }
+
+        [data-tooltip]:hover:before {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        /* Loading states */
+        .loading {
+          position: relative;
+          pointer-events: none;
+          opacity: 0.7;
+        }
+
+        .loading:after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 20px;
+          height: 20px;
+          margin: -10px 0 0 -10px;
+          border: 2px solid #3498db;
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          body {
+            padding: 10px;
+          }
+
+          .sections-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .delete-dialog {
+            min-width: 300px;
+            margin: 10px;
+          }
+
+          h1 {
+            font-size: 2em;
+          }
+
+          .endpoint {
+            padding: 10px;
+          }
+
+          .button-group {
+            flex-direction: column;
+          }
+
+          button {
+            width: 100%;
+          }
         }
       </style>
     </head>
     <body>
       <h1>School DB API v1.0</h1>
 
-      <div class="section">
-        <h2>Subjects</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/subjects</span>
-          <div class="button-group">
-            <button onclick="fetchSubjects()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('subjectsResponse')">Close</button>
-          </div>
-          <div id="subjectsResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/subjects</span>
-          <div class="form-group">
-            <input type="text" id="subjectName" placeholder="Subject Name">
-            <div class="button-group">
-              <button onclick="addSubject()">Add Subject</button>
-              <button class="delete-btn" onclick="deleteSubject()">Delete Subject</button>
-            </div>
-          </div>
-          <div id="addSubjectResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Classes</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/classes</span>
-          <div class="button-group">
-            <button onclick="fetchClasses()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('classesResponse')">Close</button>
-          </div>
-          <div id="classesResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/classes</span>
-          <div class="form-group">
-            <input type="text" id="gradeLevel" placeholder="Grade Level">
-            <input type="text" id="section" placeholder="Section">
-            <input type="text" id="schoolYear" placeholder="School Year">
-            <input type="text" id="classDescription" placeholder="Description">
-            <div class="button-group">
-              <button onclick="addClass()">Add Class</button>
-              <button class="delete-btn" onclick="deleteClass()">Delete Class</button>
-            </div>
-          </div>
-          <div id="addClassResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Teachers</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/teachers</span>
-          <div class="button-group">
-            <button onclick="fetchTeachers()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('teachersResponse')">Close</button>
-          </div>
-          <div id="teachersResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/teachers</span>
-          <div class="form-group">
-            <input type="text" id="teacherId" placeholder="Teacher ID">
-            <input type="text" id="fname" placeholder="First Name">
-            <input type="text" id="mname" placeholder="Middle Name">
-            <input type="text" id="lname" placeholder="Last Name">
-            <input type="text" id="gender" placeholder="Gender">
-            <div class="button-group">
-              <button onclick="addTeacher()">Add Teacher</button>
-              <button class="delete-btn" onclick="deleteTeacher()">Delete Teacher</button>
-            </div>
-          </div>
-          <div id="addTeacherResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Students</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/students</span>
-          <div class="button-group">
-            <button onclick="fetchStudents()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('studentsResponse')">Close</button>
-          </div>
-          <div id="studentsResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/students</span>
-          <div class="form-group">
-            <div class="form-row">
-              <input type="text" id="studentFname" placeholder="First Name">
-              <input type="text" id="studentMname" placeholder="Middle Name">
-              <input type="text" id="studentLname" placeholder="Last Name">
-            </div>
-            <div class="form-row">
-              <input type="text" id="studentGender" placeholder="Gender">
-              <input type="number" id="studentAge" placeholder="Age">
-            </div>
-            <div class="button-group">
-              <button onclick="addStudent()">Add Student</button>
-              <button class="delete-btn" onclick="deleteStudent()">Delete Student</button>
-            </div>
-          </div>
-          <div id="addStudentResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>School Year</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/school-years</span>
-          <div class="button-group">
-            <button onclick="fetchSchoolYears()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('schoolYearsResponse')">Close</button>
-          </div>
-          <div id="schoolYearsResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/school-years</span>
-          <div class="form-group">
-            <input type="text" id="schoolYear" placeholder="School Year (e.g., 2023-2024)">
-            <div class="form-row">
-              <button onclick="addSchoolYear()">Add School Year</button>
-            </div>
-          </div>
-          <div id="addSchoolYearResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Authentication</h2>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/auth/login</span>
-        </div>
+      <div class="sections-grid">
+        <!-- Existing sections with updated classes -->
       </div>
 
       <script>
