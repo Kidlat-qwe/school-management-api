@@ -1134,415 +1134,529 @@ app.get('/', (req, res) => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>School Management System</title>
+      <title>School DB API v1.0</title>
       <style>
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-
         body {
-          display: flex;
-          min-height: 100vh;
-          background-color: #f5f6fa;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-          width: 280px;
-          background-color: #fff;
-          border-right: 1px solid #e9ecef;
-          height: 100vh;
-          position: fixed;
-          left: 0;
-          top: 0;
-          overflow-y: auto;
-          box-shadow: 2px 0 5px rgba(0,0,0,0.05);
-        }
-
-        .logo-container {
-          padding: 20px;
-          background-color: #a5c7a5;
-          text-align: center;
-        }
-
-        .logo {
-          font-size: 1.5em;
-          font-weight: bold;
-          color: #2c3e50;
-        }
-
-        .nav-section {
-          padding: 15px 0;
-          border-bottom: 1px solid #e9ecef;
-        }
-
-        .nav-section-title {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          max-width: 1200px;
+          margin: 20px auto;
           padding: 0 20px;
-          font-size: 0.8em;
-          text-transform: uppercase;
-          color: #6c757d;
-          font-weight: 600;
-          margin-bottom: 10px;
+          line-height: 1.4;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
         }
-
-        .nav-item {
-          display: flex;
-          align-items: center;
-          padding: 12px 20px;
+        h1 {
           color: #2c3e50;
-          text-decoration: none;
-          transition: all 0.3s;
-          border-left: 3px solid transparent;
+          grid-column: 1 / -1;
+          margin: 0 0 20px 0;
+          border-bottom: 2px solid #eee;
+          padding-bottom: 10px;
         }
-
-        .nav-item:hover {
-          background-color: #f8f9fa;
-          border-left-color: #a5c7a5;
-        }
-
-        .nav-item.active {
-          background-color: #f8f9fa;
-          border-left-color: #a5c7a5;
-          color: #2c3e50;
-        }
-
-        .nav-item i {
-          margin-right: 12px;
-          width: 20px;
-          text-align: center;
-          font-size: 1.1em;
-        }
-
-        /* Main Content Styles */
-        .main-content {
-          flex: 1;
-          margin-left: 280px;
-          padding: 20px;
-        }
-
-        /* Header Styles */
-        .header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px;
-          background-color: #fff;
+        .section {
+          background: #f8f9fa;
+          padding: 15px;
           border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-          margin-bottom: 20px;
         }
-
-        .header h1 {
-          color: #2c3e50;
-          font-size: 1.5em;
-          font-weight: 500;
+        h2 {
+          color: #2980b9;
+          margin: 0 0 15px 0;
+          font-size: 1.2em;
         }
-
-        .user-info {
+        .endpoint {
+          margin: 8px 0;
+          font-size: 0.9em;
+        }
+        .get .method { color: #27ae60; }
+        .post .method { color: #e67e22; }
+        .put .method { color: #2980b9; }
+        .delete .method { color: #c0392b; }
+        .method {
+          display: inline-block;
+          font-weight: bold;
+          width: 45px;
+          font-size: 0.9em;
+        }
+        .path {
+          font-family: monospace;
+          background: #fff;
+          padding: 2px 4px;
+          border-radius: 3px;
+          font-size: 0.9em;
+        }
+        .form-group {
+          margin: 10px 0;
+        }
+        input, button {
+          margin: 5px 0;
+          padding: 4px 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+        }
+        button {
+          background: #3498db;
+          color: white;
+          border: none;
+          cursor: pointer;
+        }
+        button:hover {
+          background: #2980b9;
+        }
+        .response {
+          margin-top: 10px;
+          padding: 8px;
+          background: #fff;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 0.8em;
+          word-break: break-all;
+          display: none;
+          max-height: 300px;
+          overflow-y: auto;
+          border: 1px solid #eee;
+        }
+        
+        .response::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .response::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+        
+        .response::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 4px;
+        }
+        
+        .response::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+        
+        .response pre {
+          margin: 0;
+          padding-right: 10px;
+        }
+        
+        .button-group {
           display: flex;
-          align-items: center;
+          gap: 5px;
+        }
+        
+        .close-btn {
+          background: #e74c3c;
+        }
+        
+        .close-btn:hover {
+          background: #c0392b;
+        }
+        
+        .form-group input {
+          width: calc(100% - 16px);
+          margin: 4px 0;
+        }
+        
+        .form-row {
+          display: flex;
           gap: 10px;
         }
-
-        .user-info i {
-          font-size: 1.2em;
-          color: #6c757d;
-        }
-
-        .user-info span {
-          color: #2c3e50;
-          font-weight: 500;
-        }
-
-        /* Content Area */
-        .content {
-          background-color: #fff;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-          padding: 20px;
-        }
-
-        /* Card Styles */
-        .card-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 20px;
-          margin-top: 20px;
-        }
-
-        .card {
-          background: #fff;
-          border-radius: 8px;
-          padding: 20px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-          transition: transform 0.2s;
-        }
-
-        .card:hover {
-          transform: translateY(-2px);
-        }
-
-        .card h3 {
-          color: #2c3e50;
-          margin-bottom: 10px;
-          font-size: 1.1em;
-        }
-
-        .card p {
-          color: #6c757d;
-          font-size: 0.9em;
-        }
-
-        /* Table Styles */
-        .table-container {
-          overflow-x: auto;
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 20px;
-        }
-
-        th, td {
-          padding: 12px 15px;
-          text-align: left;
-          border-bottom: 1px solid #e9ecef;
-        }
-
-        th {
-          background-color: #f8f9fa;
-          color: #2c3e50;
-          font-weight: 600;
-        }
-
-        tr:hover {
-          background-color: #f8f9fa;
-        }
-
-        /* Form Styles */
-        .form-group {
-          margin-bottom: 15px;
-        }
-
-        .form-group label {
-          display: block;
-          margin-bottom: 5px;
-          color: #2c3e50;
-          font-weight: 500;
-        }
-
-        .form-control {
-          width: 100%;
-          padding: 8px 12px;
-          border: 1px solid #ced4da;
-          border-radius: 4px;
-          font-size: 0.9em;
-        }
-
-        .btn {
-          padding: 8px 16px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: 500;
-          transition: background-color 0.2s;
-        }
-
-        .btn-primary {
-          background-color: #a5c7a5;
-          color: #fff;
-        }
-
-        .btn-primary:hover {
-          background-color: #94b694;
-        }
-
-        .btn-danger {
-          background-color: #dc3545;
-          color: #fff;
-        }
-
-        .btn-danger:hover {
-          background-color: #c82333;
+        
+        .form-row input {
+          flex: 1;
         }
       </style>
     </head>
     <body>
-      <!-- Sidebar -->
-      <div class="sidebar">
-        <div class="logo-container">
-          <div class="logo">School Management</div>
-        </div>
+      <h1>School DB API v1.0</h1>
 
-        <div class="nav-section">
-          <div class="nav-section-title">Dashboard</div>
-          <a href="#" class="nav-item active">
-            <i>🏠</i>
-            <span>Home</span>
-          </a>
+      <div class="section">
+        <h2>Subjects</h2>
+        <div class="endpoint get">
+          <span class="method">GET</span>
+          <span class="path">/api/subjects</span>
+          <div class="button-group">
+            <button onclick="fetchSubjects()">Try it</button>
+            <button class="close-btn" onclick="toggleResponse('subjectsResponse')">Close</button>
+          </div>
+          <div id="subjectsResponse" class="response"></div>
         </div>
-
-        <div class="nav-section">
-          <div class="nav-section-title">Academic</div>
-          <a href="#classes" class="nav-item">
-            <i>📚</i>
-            <span>Classes</span>
-          </a>
-          <a href="#subjects" class="nav-item">
-            <i>📖</i>
-            <span>Subjects</span>
-          </a>
-          <a href="#grades" class="nav-item">
-            <i>📊</i>
-            <span>Grades</span>
-          </a>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/api/subjects</span>
+          <div class="form-group">
+            <input type="text" id="subjectName" placeholder="Subject Name">
+            <button onclick="addSubject()">Add Subject</button>
+          </div>
+          <div id="addSubjectResponse" class="response"></div>
         </div>
-
-        <div class="nav-section">
-          <div class="nav-section-title">People</div>
-          <a href="#teachers" class="nav-item">
-            <i>👨‍🏫</i>
-            <span>Teachers</span>
-          </a>
-          <a href="#students" class="nav-item">
-            <i>👨‍🎓</i>
-            <span>Students</span>
-          </a>
-        </div>
-
-        <div class="nav-section">
-          <div class="nav-section-title">Administration</div>
-          <a href="#school-year" class="nav-item">
-            <i>📅</i>
-            <span>School Year</span>
-          </a>
-          <a href="#announcements" class="nav-item">
-            <i>📢</i>
-            <span>Announcements</span>
-          </a>
-          <a href="#users" class="nav-item">
-            <i>👥</i>
-            <span>Users</span>
-          </a>
-        </div>
-
-        <div class="nav-section">
-          <div class="nav-section-title">Reports</div>
-          <a href="#academic-ranking" class="nav-item">
-            <i>🏆</i>
-            <span>Academic Ranking</span>
-          </a>
-          <a href="#class-reports" class="nav-item">
-            <i>📋</i>
-            <span>Class Reports</span>
-          </a>
+        <div class="endpoint delete">
+          <span class="method">DELETE</span>
+          <span class="path">/api/subjects/:id</span>
+          <div class="form-group">
+            <input type="text" id="deleteSubjectId" placeholder="Subject ID">
+            <button onclick="deleteSubject()">Delete Subject</button>
+          </div>
+          <div id="deleteSubjectResponse" class="response"></div>
         </div>
       </div>
 
-      <!-- Main Content -->
-      <div class="main-content">
-        <div class="header">
-          <h1>Dashboard</h1>
-          <div class="user-info">
-            <i>👤</i>
-            <span>admin</span>
+      <div class="section">
+        <h2>Classes</h2>
+        <div class="endpoint get">
+          <span class="method">GET</span>
+          <span class="path">/api/classes</span>
+          <div class="button-group">
+            <button onclick="fetchClasses()">Try it</button>
+            <button class="close-btn" onclick="toggleResponse('classesResponse')">Close</button>
           </div>
+          <div id="classesResponse" class="response"></div>
         </div>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/api/classes</span>
+          <div class="form-group">
+            <input type="text" id="gradeLevel" placeholder="Grade Level">
+            <input type="text" id="section" placeholder="Section">
+            <input type="text" id="schoolYear" placeholder="School Year">
+            <input type="text" id="classDescription" placeholder="Description">
+            <button onclick="addClass()">Add Class</button>
+          </div>
+          <div id="addClassResponse" class="response"></div>
+        </div>
+        <div class="endpoint delete">
+          <span class="method">DELETE</span>
+          <span class="path">/api/classes/:id</span>
+          <div class="form-group">
+            <input type="text" id="deleteClassId" placeholder="Class ID">
+            <button onclick="deleteClass()">Delete Class</button>
+          </div>
+          <div id="deleteClassResponse" class="response"></div>
+        </div>
+      </div>
 
-        <div class="content">
-          <div class="card-grid">
-            <div class="card">
-              <h3>Total Students</h3>
-              <p id="studentCount">Loading...</p>
+      <div class="section">
+        <h2>Teachers</h2>
+        <div class="endpoint get">
+          <span class="method">GET</span>
+          <span class="path">/api/teachers</span>
+          <div class="button-group">
+            <button onclick="fetchTeachers()">Try it</button>
+            <button class="close-btn" onclick="toggleResponse('teachersResponse')">Close</button>
+          </div>
+          <div id="teachersResponse" class="response"></div>
+        </div>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/api/teachers</span>
+          <div class="form-group">
+            <input type="text" id="teacherId" placeholder="Teacher ID">
+            <input type="text" id="fname" placeholder="First Name">
+            <input type="text" id="mname" placeholder="Middle Name">
+            <input type="text" id="lname" placeholder="Last Name">
+            <input type="text" id="gender" placeholder="Gender">
+            <button onclick="addTeacher()">Add Teacher</button>
+          </div>
+          <div id="addTeacherResponse" class="response"></div>
+        </div>
+        <div class="endpoint delete">
+          <span class="method">DELETE</span>
+          <span class="path">/api/teachers/:id</span>
+          <div class="form-group">
+            <input type="text" id="deleteTeacherId" placeholder="Teacher ID">
+            <button onclick="deleteTeacher()">Delete Teacher</button>
+          </div>
+          <div id="deleteTeacherResponse" class="response"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Students</h2>
+        <div class="endpoint get">
+          <span class="method">GET</span>
+          <span class="path">/api/students</span>
+          <div class="button-group">
+            <button onclick="fetchStudents()">Try it</button>
+            <button class="close-btn" onclick="toggleResponse('studentsResponse')">Close</button>
+          </div>
+          <div id="studentsResponse" class="response"></div>
+        </div>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/api/students</span>
+          <div class="form-group">
+            <div class="form-row">
+              <input type="text" id="studentFname" placeholder="First Name">
+              <input type="text" id="studentMname" placeholder="Middle Name">
+              <input type="text" id="studentLname" placeholder="Last Name">
             </div>
-            <div class="card">
-              <h3>Total Teachers</h3>
-              <p id="teacherCount">Loading...</p>
+            <div class="form-row">
+              <input type="text" id="studentGender" placeholder="Gender">
+              <input type="number" id="studentAge" placeholder="Age">
             </div>
-            <div class="card">
-              <h3>Active Classes</h3>
-              <p id="classCount">Loading...</p>
-            </div>
-            <div class="card">
-              <h3>Current School Year</h3>
-              <p id="currentSchoolYear">Loading...</p>
+            <button onclick="addStudent()">Add Student</button>
+          </div>
+          <div id="addStudentResponse" class="response"></div>
+        </div>
+        <div class="endpoint delete">
+          <span class="method">DELETE</span>
+          <span class="path">/api/students/:id</span>
+          <div class="form-group">
+            <input type="text" id="deleteStudentId" placeholder="Student ID">
+            <button onclick="deleteStudent()">Delete Student</button>
+          </div>
+          <div id="deleteStudentResponse" class="response"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>School Year</h2>
+        <div class="endpoint get">
+          <span class="method">GET</span>
+          <span class="path">/api/school-years</span>
+          <div class="button-group">
+            <button onclick="fetchSchoolYears()">Try it</button>
+            <button class="close-btn" onclick="toggleResponse('schoolYearsResponse')">Close</button>
+          </div>
+          <div id="schoolYearsResponse" class="response"></div>
+        </div>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/api/school-years</span>
+          <div class="form-group">
+            <input type="text" id="schoolYear" placeholder="School Year (e.g., 2023-2024)">
+            <div class="form-row">
+              <button onclick="addSchoolYear()">Add School Year</button>
             </div>
           </div>
+          <div id="addSchoolYearResponse" class="response"></div>
+        </div>
+      </div>
 
-          <div id="mainContent">
-            <!-- Content will be loaded here based on navigation -->
-          </div>
+      <div class="section">
+        <h2>Authentication</h2>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/auth/login</span>
         </div>
       </div>
 
       <script>
-        // Function to load content based on hash
-        function loadContent(hash) {
-          const mainContent = document.getElementById('mainContent');
-          const title = document.querySelector('.header h1');
-          
-          // Remove active class from all nav items
-          document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-          });
-          
-          // Add active class to current nav item
-          document.querySelector(\`a[href="\${hash}"]\`)?.classList.add('active');
-          
-          // Update content based on hash
-          switch(hash) {
-            case '#classes':
-              title.textContent = 'Classes';
-              fetchClasses();
-              break;
-            case '#subjects':
-              title.textContent = 'Subjects';
-              fetchSubjects();
-              break;
-            case '#teachers':
-              title.textContent = 'Teachers';
-              fetchTeachers();
-              break;
-            case '#students':
-              title.textContent = 'Students';
-              fetchStudents();
-              break;
-            default:
-              title.textContent = 'Dashboard';
-              loadDashboard();
-          }
-        }
-
-        // Load initial content
-        window.addEventListener('hashchange', () => {
-          loadContent(window.location.hash || '#');
-        });
-
-        // Load dashboard data
-        async function loadDashboard() {
+        // Utility function to handle API calls
+        async function apiCall(endpoint, method = 'GET', body = null) {
           try {
-            const [students, teachers, classes, schoolYear] = await Promise.all([
-              apiCall('/api/students'),
-              apiCall('/api/teachers'),
-              apiCall('/api/classes'),
-              apiCall('/api/active-school-year')
-            ]);
-
-            document.getElementById('studentCount').textContent = students.data.length;
-            document.getElementById('teacherCount').textContent = teachers.data.length;
-            document.getElementById('classCount').textContent = classes.data.length;
-            document.getElementById('currentSchoolYear').textContent = schoolYear.data.school_year;
+            const response = await fetch(endpoint, {
+              method,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: body ? JSON.stringify(body) : null
+            });
+            const data = await response.json();
+            return { success: true, data };
           } catch (error) {
-            console.error('Error loading dashboard:', error);
+            return { success: false, error: error.message };
           }
         }
 
-        // Initial load
-        loadContent(window.location.hash || '#');
+        // Add toggle function
+        function toggleResponse(elementId) {
+          const element = document.getElementById(elementId);
+          if (element.style.display === 'none' || !element.style.display) {
+            element.style.display = 'block';
+          } else {
+            element.style.display = 'none';
+          }
+        }
+
+        // Subjects
+        async function fetchSubjects() {
+          const responseElement = document.getElementById('subjectsResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/subjects');
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        async function addSubject() {
+          const subjectName = document.getElementById('subjectName').value;
+          const responseElement = document.getElementById('addSubjectResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/subjects', 'POST', { subjectName });
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        // Classes
+        async function fetchClasses() {
+          const responseElement = document.getElementById('classesResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/classes');
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        async function addClass() {
+          const body = {
+            grade_level: document.getElementById('gradeLevel').value,
+            section: document.getElementById('section').value,
+            school_year: document.getElementById('schoolYear').value,
+            class_description: document.getElementById('classDescription').value
+          };
+          const result = await apiCall('/api/classes', 'POST', body);
+          document.getElementById('addClassResponse').innerHTML = 
+            '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        // Teachers
+        async function fetchTeachers() {
+          const responseElement = document.getElementById('teachersResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/teachers');
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        async function addTeacher() {
+          const body = {
+            teacherId: document.getElementById('teacherId').value,
+            fname: document.getElementById('fname').value,
+            mname: document.getElementById('mname').value,
+            lname: document.getElementById('lname').value,
+            gender: document.getElementById('gender').value
+          };
+          const result = await apiCall('/api/teachers', 'POST', body);
+          document.getElementById('addTeacherResponse').innerHTML = 
+            '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        // Students
+        async function fetchStudents() {
+          const responseElement = document.getElementById('studentsResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/students');
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        async function addStudent() {
+          const body = {
+            fname: document.getElementById('studentFname').value,
+            mname: document.getElementById('studentMname').value,
+            lname: document.getElementById('studentLname').value,
+            gender: document.getElementById('studentGender').value,
+            age: parseInt(document.getElementById('studentAge').value)
+          };
+          
+          const responseElement = document.getElementById('addStudentResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/students', 'POST', body);
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        // School Years
+        async function fetchSchoolYears() {
+          const responseElement = document.getElementById('schoolYearsResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/school-years');
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        async function addSchoolYear() {
+          const body = {
+            school_year: document.getElementById('schoolYear').value,
+            is_active: false // Default to inactive when creating
+          };
+          
+          const responseElement = document.getElementById('addSchoolYearResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/school-years', 'POST', body);
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        // Delete functions
+        async function deleteSubject() {
+          const id = document.getElementById('deleteSubjectId').value;
+          if (!id) {
+            alert('Please enter a Subject ID');
+            return;
+          }
+          
+          if (confirm('Are you sure you want to delete this subject?')) {
+            const responseElement = document.getElementById('deleteSubjectResponse');
+            responseElement.style.display = 'block';
+            
+            try {
+              const result = await apiCall('/api/subjects/' + id, 'DELETE');
+              responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+              // Refresh subjects list
+              fetchSubjects();
+            } catch (error) {
+              responseElement.innerHTML = '<pre>Error: ' + error.message + '</pre>';
+            }
+          }
+        }
+
+        async function deleteClass() {
+          const id = document.getElementById('deleteClassId').value;
+          if (!id) {
+            alert('Please enter a Class ID');
+            return;
+          }
+          
+          if (confirm('Are you sure you want to delete this class?')) {
+            const responseElement = document.getElementById('deleteClassResponse');
+            responseElement.style.display = 'block';
+            
+            try {
+              const result = await apiCall('/api/classes/' + id, 'DELETE');
+              responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+              // Refresh classes list
+              fetchClasses();
+            } catch (error) {
+              responseElement.innerHTML = '<pre>Error: ' + error.message + '</pre>';
+            }
+          }
+        }
+
+        async function deleteTeacher() {
+          const id = document.getElementById('deleteTeacherId').value;
+          if (!id) {
+            alert('Please enter a Teacher ID');
+            return;
+          }
+          
+          if (confirm('Are you sure you want to delete this teacher?')) {
+            const responseElement = document.getElementById('deleteTeacherResponse');
+            responseElement.style.display = 'block';
+            
+            try {
+              const result = await apiCall('/api/teachers/' + id, 'DELETE');
+              responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+              // Refresh teachers list
+              fetchTeachers();
+            } catch (error) {
+              responseElement.innerHTML = '<pre>Error: ' + error.message + '</pre>';
+            }
+          }
+        }
+
+        async function deleteStudent() {
+          const id = document.getElementById('deleteStudentId').value;
+          if (!id) {
+            alert('Please enter a Student ID');
+            return;
+          }
+          
+          if (confirm('Are you sure you want to delete this student?')) {
+            const responseElement = document.getElementById('deleteStudentResponse');
+            responseElement.style.display = 'block';
+            
+            try {
+              const result = await apiCall('/api/students/' + id, 'DELETE');
+              responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+              // Refresh students list
+              fetchStudents();
+            } catch (error) {
+              responseElement.innerHTML = '<pre>Error: ' + error.message + '</pre>';
+            }
+          }
+        }
       </script>
     </body>
     </html>
