@@ -1480,32 +1480,8 @@ app.get('/', (req, res) => {
       </div>
 
       <script>
-        // Function to create a data table
-        function createDataTable(data, columns) {
-          let tableHtml = '<div class="table-container"><table><thead><tr>';
-          
-          // Add headers
-          columns.forEach(col => {
-            tableHtml += '<th>' + col.label + '</th>';
-          });
-          tableHtml += '<th>Actions</th></tr></thead><tbody>';
-          
-          // Add rows
-          data.forEach(item => {
-            tableHtml += '<tr>';
-            columns.forEach(col => {
-              tableHtml += '<td>' + item[col.key] + '</td>';
-            });
-            tableHtml += '<td><button class="btn btn-danger" onclick="deleteItem(\'' + 
-                        item.id + '\', \'' + columns.type + '\')">Delete</button></td></tr>';
-          });
-          
-          tableHtml += '</tbody></table></div>';
-          return tableHtml;
-        }
-
         // Function to load content based on hash
-        async function loadContent(hash) {
+        function loadContent(hash) {
           const mainContent = document.getElementById('mainContent');
           const title = document.querySelector('.header h1');
           
@@ -1515,108 +1491,58 @@ app.get('/', (req, res) => {
           });
           
           // Add active class to current nav item
-          document.querySelector('a[href="' + hash + '"]')?.classList.add('active');
+          document.querySelector(\`a[href="\${hash}"]\`)?.classList.add('active');
           
-          try {
-            switch(hash) {
-              case '#classes':
-                title.textContent = 'Classes';
-                const classes = await apiCall('/api/classes');
-                mainContent.innerHTML = createDataTable(classes.data, [
-                  { key: 'class_id', label: 'ID' },
-                  { key: 'grade_level', label: 'Grade Level' },
-                  { key: 'section', label: 'Section' },
-                  { key: 'school_year', label: 'School Year' },
-                  { key: 'class_description', label: 'Description' }
-                ], 'classes');
-                break;
-
-              case '#subjects':
-                title.textContent = 'Subjects';
-                const subjects = await apiCall('/api/subjects');
-                mainContent.innerHTML = createDataTable(subjects.data, [
-                  { key: 'subject_id', label: 'ID' },
-                  { key: 'subject_name', label: 'Subject Name' }
-                ], 'subjects');
-                break;
-
-              case '#teachers':
-                title.textContent = 'Teachers';
-                const teachers = await apiCall('/api/teachers');
-                mainContent.innerHTML = createDataTable(teachers.data, [
-                  { key: 'teacher_id', label: 'ID' },
-                  { key: 'fname', label: 'First Name' },
-                  { key: 'lname', label: 'Last Name' },
-                  { key: 'gender', label: 'Gender' }
-                ], 'teachers');
-                break;
-
-              case '#students':
-                title.textContent = 'Students';
-                const students = await apiCall('/api/students');
-                mainContent.innerHTML = createDataTable(students.data, [
-                  { key: 'student_id', label: 'ID' },
-                  { key: 'fname', label: 'First Name' },
-                  { key: 'lname', label: 'Last Name' },
-                  { key: 'gender', label: 'Gender' },
-                  { key: 'age', label: 'Age' }
-                ], 'students');
-                break;
-
-              default:
-                title.textContent = 'Dashboard';
-                loadDashboard();
-            }
-          } catch (error) {
-            console.error('Error loading content:', error);
-            mainContent.innerHTML = '<p class="error">Error loading content. Please try again.</p>';
+          // Update content based on hash
+          switch(hash) {
+            case '#classes':
+              title.textContent = 'Classes';
+              fetchClasses();
+              break;
+            case '#subjects':
+              title.textContent = 'Subjects';
+              fetchSubjects();
+              break;
+            case '#teachers':
+              title.textContent = 'Teachers';
+              fetchTeachers();
+              break;
+            case '#students':
+              title.textContent = 'Students';
+              fetchStudents();
+              break;
+            default:
+              title.textContent = 'Dashboard';
+              loadDashboard();
           }
         }
 
-        // Function to delete items
-        async function deleteItem(id, type) {
-          if (confirm('Are you sure you want to delete this ' + type.slice(0, -1) + '?')) {
-            try {
-              await apiCall('/api/' + type + '/' + id, 'DELETE');
-              // Reload the current view
-              loadContent(window.location.hash);
-            } catch (error) {
-              console.error('Error deleting item:', error);
-              alert('Error deleting item. Please try again.');
-            }
-          }
-        }
-
-        // Add these styles to your existing styles
-        const additionalStyles = 
-          '.table-container {' +
-          '  margin-top: 20px;' +
-          '  background: white;' +
-          '  border-radius: 8px;' +
-          '  box-shadow: 0 2px 4px rgba(0,0,0,0.05);' +
-          '  overflow: hidden;' +
-          '}' +
-          'table { width: 100%; border-collapse: collapse; }' +
-          'th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e9ecef; }' +
-          'th { background-color: #f8f9fa; font-weight: 600; color: #2c3e50; }' +
-          'tr:hover { background-color: #f8f9fa; }' +
-          '.btn { padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9em; border: none; }' +
-          '.btn-danger { background-color: #dc3545; color: white; }' +
-          '.btn-danger:hover { background-color: #c82333; }' +
-          '.error { color: #dc3545; padding: 20px; text-align: center; }';
-
-        // Add the styles to the document
-        const styleSheet = document.createElement("style");
-        styleSheet.innerText = additionalStyles;
-        document.head.appendChild(styleSheet);
-
-        // Initial load
-        loadContent(window.location.hash || '#');
-
-        // Listen for hash changes
+        // Load initial content
         window.addEventListener('hashchange', () => {
           loadContent(window.location.hash || '#');
         });
+
+        // Load dashboard data
+        async function loadDashboard() {
+          try {
+            const [students, teachers, classes, schoolYear] = await Promise.all([
+              apiCall('/api/students'),
+              apiCall('/api/teachers'),
+              apiCall('/api/classes'),
+              apiCall('/api/active-school-year')
+            ]);
+
+            document.getElementById('studentCount').textContent = students.data.length;
+            document.getElementById('teacherCount').textContent = teachers.data.length;
+            document.getElementById('classCount').textContent = classes.data.length;
+            document.getElementById('currentSchoolYear').textContent = schoolYear.data.school_year;
+          } catch (error) {
+            console.error('Error loading dashboard:', error);
+          }
+        }
+
+        // Initial load
+        loadContent(window.location.hash || '#');
       </script>
     </body>
     </html>
