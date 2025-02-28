@@ -1128,6 +1128,94 @@ app.delete('/api/students/:id', async (req, res) => {
   }
 });
 
+// PATCH endpoint to update a subject
+app.patch('/api/subjects/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject_name } = req.body;
+    
+    const result = await pool.query(
+      'UPDATE subject SET subject_name = $1 WHERE subject_id = $2 RETURNING *',
+      [subject_name, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Subject not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating subject:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PATCH endpoint to update a class
+app.patch('/api/classes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { grade_level, section, school_year, class_description } = req.body;
+    
+    const result = await pool.query(
+      'UPDATE class SET grade_level = $1, section = $2, school_year = $3, class_description = $4 WHERE class_id = $5 RETURNING *',
+      [grade_level, section, school_year, class_description, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating class:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PATCH endpoint to update a teacher
+app.patch('/api/teachers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fname, mname, lname, gender, status } = req.body;
+    
+    const result = await pool.query(
+      'UPDATE teacher SET fname = $1, mname = $2, lname = $3, gender = $4, status = $5 WHERE teacher_id = $6 RETURNING *',
+      [fname, mname, lname, gender, status, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating teacher:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PATCH endpoint to update a student
+app.patch('/api/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fname, mname, lname, gender, age } = req.body;
+    
+    const result = await pool.query(
+      'UPDATE student SET fname = $1, mname = $2, lname = $3, gender = $4, age = $5 WHERE student_id = $6 RETURNING *',
+      [fname, mname, lname, gender, age, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating student:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 //THE API ENDPOINTS FRONTEND
 app.get('/', (req, res) => {
   res.send(`
@@ -1488,14 +1576,24 @@ app.get('/', (req, res) => {
         // Utility function to handle API calls
         async function apiCall(endpoint, method = 'GET', body = null) {
           try {
-            const response = await fetch(endpoint, {
+            const options = {
               method,
               headers: {
-                'Content-Type': 'application/json',
-              },
-              body: body ? JSON.stringify(body) : null
-            });
+                'Content-Type': 'application/json'
+              }
+            };
+
+            if (body) {
+              options.body = JSON.stringify(body);
+            }
+
+            const response = await fetch(endpoint, options);
             const data = await response.json();
+
+            if (!response.ok) {
+              throw new Error(data.error || 'API call failed');
+            }
+
             return { success: true, data };
           } catch (error) {
             return { success: false, error: error.message };
@@ -1514,10 +1612,10 @@ app.get('/', (req, res) => {
 
         // Subjects
         async function fetchSubjects() {
-          const responseElement = document.getElementById('subjectsResponse');
-          responseElement.style.display = 'block';
           const result = await apiCall('/api/subjects');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          if (result.success) {
+            updateDisplay('subject', result.data);
+          }
         }
 
         async function addSubject() {
@@ -1530,10 +1628,10 @@ app.get('/', (req, res) => {
 
         // Classes
         async function fetchClasses() {
-          const responseElement = document.getElementById('classesResponse');
-          responseElement.style.display = 'block';
           const result = await apiCall('/api/classes');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          if (result.success) {
+            updateDisplay('class', result.data);
+          }
         }
 
         async function addClass() {
@@ -1550,10 +1648,10 @@ app.get('/', (req, res) => {
 
         // Teachers
         async function fetchTeachers() {
-          const responseElement = document.getElementById('teachersResponse');
-          responseElement.style.display = 'block';
           const result = await apiCall('/api/teachers');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          if (result.success) {
+            updateDisplay('teacher', result.data);
+          }
         }
 
         async function addTeacher() {
@@ -1571,10 +1669,10 @@ app.get('/', (req, res) => {
 
         // Students
         async function fetchStudents() {
-          const responseElement = document.getElementById('studentsResponse');
-          responseElement.style.display = 'block';
           const result = await apiCall('/api/students');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          if (result.success) {
+            updateDisplay('student', result.data);
+          }
         }
 
         async function addStudent() {
@@ -1862,6 +1960,373 @@ app.get('/', (req, res) => {
           <button class="delete-btn" onclick="confirmDelete('student')">Delete</button>
         </div>
       </div>
+
+      <!-- Add edit dialogs -->
+      <div id="editSubjectDialog" class="edit-dialog dialog">
+        <h3>Edit Subject</h3>
+        <div class="edit-form">
+          <div class="form-group">
+            <label>Subject Name:</label>
+            <input type="text" id="editSubjectName" placeholder="Enter Subject Name">
+            <input type="hidden" id="editSubjectId">
+          </div>
+        </div>
+        <div class="button-group">
+          <button class="cancel-btn" onclick="closeEditDialog('editSubjectDialog')">Cancel</button>
+          <button class="edit-btn" onclick="confirmEdit('subject')">Update</button>
+        </div>
+      </div>
+
+      <div id="editClassDialog" class="edit-dialog dialog">
+        <h3>Edit Class</h3>
+        <div class="edit-form">
+          <div class="form-group">
+            <label>Grade Level:</label>
+            <input type="text" id="editGradeLevel" placeholder="Enter Grade Level">
+          </div>
+          <div class="form-group">
+            <label>Section:</label>
+            <input type="text" id="editSection" placeholder="Enter Section">
+          </div>
+          <div class="form-group">
+            <label>School Year:</label>
+            <input type="text" id="editSchoolYear" placeholder="Enter School Year">
+          </div>
+          <div class="form-group">
+            <label>Description:</label>
+            <input type="text" id="editClassDescription" placeholder="Enter Description">
+            <input type="hidden" id="editClassId">
+          </div>
+        </div>
+        <div class="button-group">
+          <button class="cancel-btn" onclick="closeEditDialog('editClassDialog')">Cancel</button>
+          <button class="edit-btn" onclick="confirmEdit('class')">Update</button>
+        </div>
+      </div>
+
+      <div id="editTeacherDialog" class="edit-dialog dialog">
+        <h3>Edit Teacher</h3>
+        <div class="edit-form">
+          <div class="form-group">
+            <label>First Name:</label>
+            <input type="text" id="editTeacherFname" placeholder="Enter First Name">
+          </div>
+          <div class="form-group">
+            <label>Middle Name:</label>
+            <input type="text" id="editTeacherMname" placeholder="Enter Middle Name">
+          </div>
+          <div class="form-group">
+            <label>Last Name:</label>
+            <input type="text" id="editTeacherLname" placeholder="Enter Last Name">
+          </div>
+          <div class="form-group">
+            <label>Gender:</label>
+            <select id="editTeacherGender">
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status:</label>
+            <select id="editTeacherStatus">
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+            <input type="hidden" id="editTeacherId">
+          </div>
+        </div>
+        <div class="button-group">
+          <button class="cancel-btn" onclick="closeEditDialog('editTeacherDialog')">Cancel</button>
+          <button class="edit-btn" onclick="confirmEdit('teacher')">Update</button>
+        </div>
+      </div>
+
+      <div id="editStudentDialog" class="edit-dialog dialog">
+        <h3>Edit Student</h3>
+        <div class="edit-form">
+          <div class="form-group">
+            <label>First Name:</label>
+            <input type="text" id="editStudentFname" placeholder="Enter First Name">
+          </div>
+          <div class="form-group">
+            <label>Middle Name:</label>
+            <input type="text" id="editStudentMname" placeholder="Enter Middle Name">
+          </div>
+          <div class="form-group">
+            <label>Last Name:</label>
+            <input type="text" id="editStudentLname" placeholder="Enter Last Name">
+          </div>
+          <div class="form-group">
+            <label>Gender:</label>
+            <select id="editStudentGender">
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Age:</label>
+            <input type="number" id="editStudentAge" placeholder="Enter Age">
+            <input type="hidden" id="editStudentId">
+          </div>
+        </div>
+        <div class="button-group">
+          <button class="cancel-btn" onclick="closeEditDialog('editStudentDialog')">Cancel</button>
+          <button class="edit-btn" onclick="confirmEdit('student')">Update</button>
+        </div>
+      </div>
+
+      <style>
+        /* Add these styles to your existing styles */
+        .edit-dialog {
+          min-width: 400px;
+        }
+        
+        .edit-btn {
+          background: #f39c12;
+          color: white;
+        }
+        
+        .edit-btn:hover {
+          background: #d68910;
+        }
+        
+        .dialog {
+          display: none;
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: white;
+          padding: 25px;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+          z-index: 1000;
+        }
+        
+        .edit-form {
+          margin: 20px 0;
+        }
+        
+        .edit-form .form-group {
+          margin: 15px 0;
+        }
+        
+        .edit-form label {
+          display: block;
+          margin-bottom: 8px;
+          font-weight: 600;
+          color: #2c3e50;
+        }
+      </style>
+
+      <script>
+        // Add these functions to your existing JavaScript
+        function showEditDialog(dialogId) {
+          document.getElementById('overlay').style.display = 'block';
+          document.getElementById(dialogId).style.display = 'block';
+        }
+
+        function closeEditDialog(dialogId) {
+          document.getElementById('overlay').style.display = 'none';
+          document.getElementById(dialogId).style.display = 'none';
+        }
+
+        async function editSubject(id) {
+          const subjects = await apiCall('/api/subjects');
+          const subject = subjects.data.find(s => s.subject_id === id);
+          if (subject) {
+            document.getElementById('editSubjectId').value = subject.subject_id;
+            document.getElementById('editSubjectName').value = subject.subject_name;
+            showEditDialog('editSubjectDialog');
+          }
+        }
+
+        async function editClass(id) {
+          const classes = await apiCall('/api/classes');
+          const cls = classes.data.find(c => c.class_id === id);
+          if (cls) {
+            document.getElementById('editClassId').value = cls.class_id;
+            document.getElementById('editGradeLevel').value = cls.grade_level;
+            document.getElementById('editSection').value = cls.section;
+            document.getElementById('editSchoolYear').value = cls.school_year;
+            document.getElementById('editClassDescription').value = cls.class_description;
+            showEditDialog('editClassDialog');
+          }
+        }
+
+        async function editTeacher(id) {
+          const teachers = await apiCall('/api/teachers');
+          const teacher = teachers.data.find(t => t.teacher_id === id);
+          if (teacher) {
+            document.getElementById('editTeacherId').value = teacher.teacher_id;
+            document.getElementById('editTeacherFname').value = teacher.fname;
+            document.getElementById('editTeacherMname').value = teacher.mname;
+            document.getElementById('editTeacherLname').value = teacher.lname;
+            document.getElementById('editTeacherGender').value = teacher.gender;
+            document.getElementById('editTeacherStatus').value = teacher.status;
+            showEditDialog('editTeacherDialog');
+          }
+        }
+
+        async function editStudent(id) {
+          const students = await apiCall('/api/students');
+          const student = students.data.find(s => s.student_id === id);
+          if (student) {
+            document.getElementById('editStudentId').value = student.student_id;
+            document.getElementById('editStudentFname').value = student.fname;
+            document.getElementById('editStudentMname').value = student.mname;
+            document.getElementById('editStudentLname').value = student.lname;
+            document.getElementById('editStudentGender').value = student.gender;
+            document.getElementById('editStudentAge').value = student.age;
+            showEditDialog('editStudentDialog');
+          }
+        }
+
+        async function confirmEdit(type) {
+          const id = document.getElementById('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Id').value;
+          let data = {};
+          
+          switch(type) {
+            case 'subject':
+              data = {
+                subject_name: document.getElementById('editSubjectName').value
+              };
+              break;
+            case 'class':
+              data = {
+                grade_level: document.getElementById('editGradeLevel').value,
+                section: document.getElementById('editSection').value,
+                school_year: document.getElementById('editSchoolYear').value,
+                class_description: document.getElementById('editClassDescription').value
+              };
+              break;
+            case 'teacher':
+              data = {
+                fname: document.getElementById('editTeacherFname').value,
+                mname: document.getElementById('editTeacherMname').value,
+                lname: document.getElementById('editTeacherLname').value,
+                gender: document.getElementById('editTeacherGender').value,
+                status: document.getElementById('editTeacherStatus').value
+              };
+              break;
+            case 'student':
+              data = {
+                fname: document.getElementById('editStudentFname').value,
+                mname: document.getElementById('editStudentMname').value,
+                lname: document.getElementById('editStudentLname').value,
+                gender: document.getElementById('editStudentGender').value,
+                age: parseInt(document.getElementById('editStudentAge').value)
+              };
+              break;
+          }
+
+          try {
+            const response = await fetch('/api/' + type + 's/' + id, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            
+            if (response.ok) {
+              alert(type.charAt(0).toUpperCase() + type.slice(1) + ' updated successfully');
+              closeEditDialog('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog');
+              // Refresh the list
+              window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
+            } else {
+              throw new Error(result.error || 'Failed to update ' + type);
+            }
+          } catch (error) {
+            alert(error.message);
+          }
+        }
+
+        // Update the display functions to include edit buttons
+        function displayItems(items, type) {
+          return items.map(item => {
+            let displayText = '';
+            switch(type) {
+              case 'subject':
+                displayText = item.subject_name;
+                break;
+              case 'class':
+                displayText = 'Grade ' + item.grade_level + '-' + item.section + ' (' + item.school_year + ')';
+                break;
+              case 'teacher':
+                displayText = item.fname + ' ' + item.lname;
+                break;
+              case 'student':
+                displayText = item.fname + ' ' + item.lname;
+                break;
+            }
+
+            const editBtnText = 'edit' + type.charAt(0).toUpperCase() + type.slice(1);
+            const deleteBtnText = 'delete' + type.charAt(0).toUpperCase() + type.slice(1);
+            const itemId = item[type + '_id'];
+
+            return [
+              '<div class="item">',
+              '  <span>' + displayText + '</span>',
+              '  <div class="button-group">',
+              '    <button class="edit-btn" onclick="' + editBtnText + '(\'' + itemId + '\')">Edit</button>',
+              '    <button class="delete-btn" onclick="' + deleteBtnText + '(\'' + itemId + '\')">Delete</button>',
+              '  </div>',
+              '</div>'
+            ].join('\n');
+          }).join('');
+        }
+
+        // Add these functions to handle the edit and delete operations
+        function updateDisplay(type, items) {
+          const container = document.getElementById(type + 'List');
+          if (container) {
+            container.innerHTML = displayItems(items, type);
+          }
+        }
+
+        // Update the fetch functions to use the new display method
+        async function fetchSubjects() {
+          const result = await apiCall('/api/subjects');
+          if (result.success) {
+            updateDisplay('subject', result.data);
+          }
+        }
+
+        async function fetchClasses() {
+          const result = await apiCall('/api/classes');
+          if (result.success) {
+            updateDisplay('class', result.data);
+          }
+        }
+
+        async function fetchTeachers() {
+          const result = await apiCall('/api/teachers');
+          if (result.success) {
+            updateDisplay('teacher', result.data);
+          }
+        }
+
+        async function fetchStudents() {
+          const result = await apiCall('/api/students');
+          if (result.success) {
+            updateDisplay('student', result.data);
+          }
+        }
+
+        // Add error handling utility
+        function handleError(error, action) {
+          console.error(action + ' error:', error);
+          alert(error.message || 'An error occurred while ' + action);
+        }
+
+        // Add success message utility
+        function showSuccess(message) {
+          alert(message);
+        }
+      </script>
     </body>
     </html>
   `);
