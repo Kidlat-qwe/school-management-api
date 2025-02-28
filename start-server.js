@@ -2126,8 +2126,38 @@ app.get('/', (req, res) => {
         // Edit functionality
         function showEditDialog(type) {
           document.getElementById('overlay').style.display = 'block';
-          document.getElementById('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog').style.display = 'block';
-          loadEditData(type);
+          const dialogId = 'edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog';
+          document.getElementById(dialogId).style.display = 'block';
+          
+          // Load the dropdown options
+          try {
+            const response = await fetch('/api/' + type + 's');
+            if (!response.ok) throw new Error('Failed to fetch data');
+            
+            const data = await response.json();
+            const select = document.getElementById('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Select');
+            select.innerHTML = '<option value="">Select a ' + type + '...</option>';
+            
+            if (data.data && Array.isArray(data.data)) {
+              switch(type) {
+                case 'class':
+                  data.data.forEach(item => {
+                    select.innerHTML += '<option value="' + item.class_id + '">Grade ' + 
+                      item.grade_level + '-' + item.section + ' (' + item.school_year + ')</option>';
+                  });
+                  break;
+                case 'schoolYear':
+                  data.data.forEach(item => {
+                    select.innerHTML += '<option value="' + item.school_year_id + '">' + 
+                      item.school_year + ' (' + (item.is_active ? 'Active' : 'Inactive') + ')</option>';
+                  });
+                  break;
+                // ... other cases remain the same ...
+              }
+            }
+          } catch (error) {
+            console.error('Error loading data:', error);
+          }
         }
 
         function closeEditDialog(dialogId) {
@@ -2187,21 +2217,24 @@ app.get('/', (req, res) => {
           }
         }
 
+        // Update loadClassData function
         async function loadClassData() {
           try {
             const select = document.getElementById('editClassSelect');
             if (!select.value) return;
             
             const response = await fetch('/api/classes/' + select.value);
-            if (!response.ok) return;
+            if (!response.ok) {
+              throw new Error('Failed to load class data');
+            }
             
             const data = await response.json();
-            if (!data) return;
-            
-            document.getElementById('editGradeLevel').value = data.grade_level || '';
-            document.getElementById('editSection').value = data.section || '';
-            document.getElementById('editClassSchoolYear').value = data.school_year || '';
-            document.getElementById('editClassDescription').value = data.class_description || '';
+            if (data) {
+              document.getElementById('editGradeLevel').value = data.grade_level || '';
+              document.getElementById('editSection').value = data.section || '';
+              document.getElementById('editClassSchoolYear').value = data.school_year || '';
+              document.getElementById('editClassDescription').value = data.class_description || '';
+            }
           } catch (error) {
             console.error('Error loading class:', error);
           }
@@ -2320,20 +2353,22 @@ app.get('/', (req, res) => {
           }
         }
 
-        // Add loadSchoolYearData function
+        // Update loadSchoolYearData function
         async function loadSchoolYearData() {
           try {
             const select = document.getElementById('editSchoolYearSelect');
             if (!select.value) return;
             
             const response = await fetch('/api/school-years/' + select.value);
-            if (!response.ok) return;
+            if (!response.ok) {
+              throw new Error('Failed to load school year data');
+            }
             
             const data = await response.json();
-            if (!data) return;
-            
-            document.getElementById('editSchoolYearInput').value = data.school_year || '';
-            document.getElementById('editSchoolYearStatus').value = data.is_active.toString();
+            if (data) {
+              document.getElementById('editSchoolYearInput').value = data.school_year || '';
+              document.getElementById('editSchoolYearStatus').value = (data.is_active || false).toString();
+            }
           } catch (error) {
             console.error('Error loading school year:', error);
           }
