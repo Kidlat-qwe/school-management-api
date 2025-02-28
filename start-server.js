@@ -1129,7 +1129,7 @@ app.delete('/api/students/:id', async (req, res) => {
 });
 
 //THE API ENDPOINTS FRONTEND
-app.get('/', (req, res) => {
+app.get('/frontend', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html>
