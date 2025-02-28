@@ -682,15 +682,15 @@ app.get('/api/academic-rankings/check-quarters', async (req, res) => {
   }
 });
 
-// PUT endpoint to update a subject
-app.put('/api/subjects/:id', async (req, res) => {
+// PATCH endpoint to update a subject
+app.patch('/api/subjects/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { subjectName } = req.body;
+    const { subject_name } = req.body;  // Changed from subjectName to subject_name
     
     const result = await pool.query(
       'UPDATE subject SET subject_name = $1 WHERE subject_id = $2 RETURNING *',
-      [subjectName, id]
+      [subject_name, id]
     );
 
     if (result.rows.length === 0) {
@@ -1132,11 +1132,11 @@ app.delete('/api/students/:id', async (req, res) => {
 app.patch('/api/subjects/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { subjectName } = req.body;
+    const { subject_name } = req.body;  // Changed from subjectName to subject_name
     
     const result = await pool.query(
       'UPDATE subject SET subject_name = $1 WHERE subject_id = $2 RETURNING *',
-      [subjectName, id]
+      [subject_name, id]
     );
 
     if (result.rows.length === 0) {
@@ -2000,11 +2000,21 @@ app.get('/', (req, res) => {
         }
 
         async function loadSubjectData() {
-          const select = document.getElementById('editSubjectSelect');
-          if (!select.value) return;
-          
-          const data = await apiCall('/api/subjects/' + select.value);
-          document.getElementById('editSubjectName').value = data.data.subject_name;
+          try {
+            const select = document.getElementById('editSubjectSelect');
+            if (!select.value) return;
+            
+            const response = await fetch('/api/subjects/' + select.value);
+            if (!response.ok) {
+              throw new Error('Failed to load subject data');
+            }
+            
+            const data = await response.json();
+            document.getElementById('editSubjectName').value = data.subject_name;
+          } catch (error) {
+            console.error('Error loading subject:', error);
+            alert('Error loading subject data: ' + error.message);
+          }
         }
 
         async function loadClassData() {
@@ -2052,7 +2062,7 @@ app.get('/', (req, res) => {
           switch(type) {
             case 'subject':
               data = {
-                subject_name: document.getElementById('editSubjectName').value
+                subject_name: document.getElementById('editSubjectName').value  // Changed from subjectName
               };
               break;
             case 'class':
@@ -2091,17 +2101,18 @@ app.get('/', (req, res) => {
               body: JSON.stringify(data)
             });
 
-            const result = await response.json();
-            
-            if (response.ok) {
-              alert(type.charAt(0).toUpperCase() + type.slice(1) + ' updated successfully');
-              closeEditDialog('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog');
-              // Refresh the list
-              window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
-            } else {
-              throw new Error(result.error || 'Failed to update ' + type);
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Failed to update ' + type);
             }
+
+            const result = await response.json();
+            alert(type.charAt(0).toUpperCase() + type.slice(1) + ' updated successfully');
+            closeEditDialog('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog');
+            // Refresh the list
+            window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
           } catch (error) {
+            console.error('Update error:', error);
             alert(error.message);
           }
         }
