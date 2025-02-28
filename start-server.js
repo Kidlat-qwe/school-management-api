@@ -1375,18 +1375,234 @@ app.get('/', (req, res) => {
 
         <!-- Content Area -->
         <div class="content">
-          <!-- Your existing sections here -->
           <div class="section">
-            <h2>Subjects</h2>
-            <!-- ... rest of your existing content ... -->
+            <h2>API Documentation</h2>
+            <div class="api-docs">
+              <!-- Subjects -->
+              <div class="api-group">
+                <h3>Subjects</h3>
+                <div class="endpoint get">
+                  <span class="method">GET</span>
+                  <span class="path">/api/subjects</span>
+                  <div class="button-group">
+                    <button onclick="fetchSubjects()">Try it</button>
+                    <button class="close-btn" onclick="toggleResponse('subjectsResponse')">Close</button>
+                  </div>
+                  <div id="subjectsResponse" class="response"></div>
+                </div>
+                <div class="endpoint post">
+                  <span class="method">POST</span>
+                  <span class="path">/api/subjects</span>
+                  <div class="form-group">
+                    <input type="text" id="subjectName" placeholder="Subject Name">
+                    <button onclick="addSubject()">Add Subject</button>
+                  </div>
+                  <div id="addSubjectResponse" class="response"></div>
+                </div>
+              </div>
+
+              <!-- Classes -->
+              <div class="api-group">
+                <h3>Classes</h3>
+                <div class="endpoint get">
+                  <span class="method">GET</span>
+                  <span class="path">/api/classes</span>
+                  <div class="button-group">
+                    <button onclick="fetchClasses()">Try it</button>
+                    <button class="close-btn" onclick="toggleResponse('classesResponse')">Close</button>
+                  </div>
+                  <div id="classesResponse" class="response"></div>
+                </div>
+                <div class="endpoint post">
+                  <span class="method">POST</span>
+                  <span class="path">/api/classes</span>
+                  <div class="form-group">
+                    <input type="text" id="gradeLevel" placeholder="Grade Level">
+                    <input type="text" id="section" placeholder="Section">
+                    <input type="text" id="schoolYear" placeholder="School Year">
+                    <input type="text" id="classDescription" placeholder="Description">
+                    <button onclick="addClass()">Add Class</button>
+                  </div>
+                  <div id="addClassResponse" class="response"></div>
+                </div>
+              </div>
+
+              <!-- Teachers -->
+              <div class="api-group">
+                <h3>Teachers</h3>
+                <div class="endpoint get">
+                  <span class="method">GET</span>
+                  <span class="path">/api/teachers</span>
+                  <div class="button-group">
+                    <button onclick="fetchTeachers()">Try it</button>
+                    <button class="close-btn" onclick="toggleResponse('teachersResponse')">Close</button>
+                  </div>
+                  <div id="teachersResponse" class="response"></div>
+                </div>
+                <div class="endpoint post">
+                  <span class="method">POST</span>
+                  <span class="path">/api/teachers</span>
+                  <div class="form-group">
+                    <input type="text" id="teacherId" placeholder="Teacher ID">
+                    <input type="text" id="fname" placeholder="First Name">
+                    <input type="text" id="mname" placeholder="Middle Name">
+                    <input type="text" id="lname" placeholder="Last Name">
+                    <input type="text" id="gender" placeholder="Gender">
+                    <button onclick="addTeacher()">Add Teacher</button>
+                  </div>
+                  <div id="addTeacherResponse" class="response"></div>
+                </div>
+              </div>
+
+              <!-- Students -->
+              <div class="api-group">
+                <h3>Students</h3>
+                <div class="endpoint get">
+                  <span class="method">GET</span>
+                  <span class="path">/api/students</span>
+                  <div class="button-group">
+                    <button onclick="fetchStudents()">Try it</button>
+                    <button class="close-btn" onclick="toggleResponse('studentsResponse')">Close</button>
+                  </div>
+                  <div id="studentsResponse" class="response"></div>
+                </div>
+                <div class="endpoint post">
+                  <span class="method">POST</span>
+                  <span class="path">/api/students</span>
+                  <div class="form-group">
+                    <div class="form-row">
+                      <input type="text" id="studentFname" placeholder="First Name">
+                      <input type="text" id="studentMname" placeholder="Middle Name">
+                      <input type="text" id="studentLname" placeholder="Last Name">
+                    </div>
+                    <div class="form-row">
+                      <input type="text" id="studentGender" placeholder="Gender">
+                      <input type="number" id="studentAge" placeholder="Age">
+                    </div>
+                    <button onclick="addStudent()">Add Student</button>
+                  </div>
+                  <div id="addStudentResponse" class="response"></div>
+                </div>
+              </div>
+
+              <!-- School Year -->
+              <div class="api-group">
+                <h3>School Year</h3>
+                <div class="endpoint get">
+                  <span class="method">GET</span>
+                  <span class="path">/api/school-years</span>
+                  <div class="button-group">
+                    <button onclick="fetchSchoolYears()">Try it</button>
+                    <button class="close-btn" onclick="toggleResponse('schoolYearsResponse')">Close</button>
+                  </div>
+                  <div id="schoolYearsResponse" class="response"></div>
+                </div>
+                <div class="endpoint post">
+                  <span class="method">POST</span>
+                  <span class="path">/api/school-years</span>
+                  <div class="form-group">
+                    <input type="text" id="schoolYear" placeholder="School Year (e.g., 2023-2024)">
+                    <button onclick="addSchoolYear()">Add School Year</button>
+                  </div>
+                  <div id="addSchoolYearResponse" class="response"></div>
+                </div>
+              </div>
+
+              <!-- Authentication -->
+              <div class="api-group">
+                <h3>Authentication</h3>
+                <div class="endpoint post">
+                  <span class="method">POST</span>
+                  <span class="path">/auth/login</span>
+                  <div class="form-group">
+                    <input type="text" id="username" placeholder="Username">
+                    <input type="password" id="password" placeholder="Password">
+                    <button onclick="login()">Login</button>
+                  </div>
+                  <div id="loginResponse" class="response"></div>
+                </div>
+              </div>
+            </div>
           </div>
-          <!-- ... other sections ... -->
         </div>
       </div>
 
-      <!-- Your existing JavaScript -->
+      <style>
+        /* Additional styles for API documentation */
+        .api-docs {
+          display: flex;
+          flex-direction: column;
+          gap: 30px;
+        }
+
+        .api-group {
+          background: #fff;
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+          padding: 20px;
+        }
+
+        .api-group h3 {
+          color: #2c3e50;
+          margin-bottom: 15px;
+          font-size: 1.1em;
+          border-bottom: 1px solid #e9ecef;
+          padding-bottom: 10px;
+        }
+
+        .button-group {
+          display: flex;
+          gap: 8px;
+          margin-top: 10px;
+        }
+
+        .close-btn {
+          background: #dc3545;
+          color: white;
+        }
+
+        .close-btn:hover {
+          background: #c82333;
+        }
+
+        .form-row {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+
+        .form-row input {
+          flex: 1;
+        }
+
+        .response {
+          margin-top: 10px;
+          padding: 15px;
+          background: #f8f9fa;
+          border-radius: 4px;
+          border: 1px solid #e9ecef;
+        }
+
+        .response pre {
+          margin: 0;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+        }
+      </style>
+
       <script>
         // ... existing JavaScript code ...
+
+        // Add login function
+        async function login() {
+          const username = document.getElementById('username').value;
+          const password = document.getElementById('password').value;
+          const responseElement = document.getElementById('loginResponse');
+          responseElement.style.display = 'block';
+          
+          const result = await apiCall('/auth/login', 'POST', { username, password });
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
       </script>
     </body>
     </html>
