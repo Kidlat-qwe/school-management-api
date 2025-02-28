@@ -1238,6 +1238,86 @@ app.patch('/api/school-years/:id', async (req, res) => {
   }
 });
 
+// Add GET endpoint for single subject
+app.get('/api/subjects/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM subject WHERE subject_id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Subject not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching subject:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add GET endpoint for single class
+app.get('/api/classes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM class WHERE class_id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching class:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add GET endpoint for single teacher
+app.get('/api/teachers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM teacher WHERE teacher_id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching teacher:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add GET endpoint for single student
+app.get('/api/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM student WHERE student_id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching student:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 //THE API ENDPOINTS FRONTEND
 app.get('/', (req, res) => {
   res.send(`
@@ -2010,45 +2090,76 @@ app.get('/', (req, res) => {
             }
             
             const data = await response.json();
-            document.getElementById('editSubjectName').value = data.subject_name;
+            if (!data) {
+              throw new Error('No data received');
+            }
+            
+            document.getElementById('editSubjectName').value = data.subject_name || '';
           } catch (error) {
             console.error('Error loading subject:', error);
-            alert('Error loading subject data: ' + error.message);
+            // Don't show alert, just log to console
           }
         }
 
         async function loadClassData() {
-          const select = document.getElementById('editClassSelect');
-          if (!select.value) return;
-          
-          const data = await apiCall('/api/classes/' + select.value);
-          document.getElementById('editGradeLevel').value = data.data.grade_level;
-          document.getElementById('editSection').value = data.data.section;
-          document.getElementById('editClassSchoolYear').value = data.data.school_year;
-          document.getElementById('editClassDescription').value = data.data.class_description;
+          try {
+            const select = document.getElementById('editClassSelect');
+            if (!select.value) return;
+            
+            const response = await fetch('/api/classes/' + select.value);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            if (!data) return;
+            
+            document.getElementById('editGradeLevel').value = data.grade_level || '';
+            document.getElementById('editSection').value = data.section || '';
+            document.getElementById('editClassSchoolYear').value = data.school_year || '';
+            document.getElementById('editClassDescription').value = data.class_description || '';
+          } catch (error) {
+            console.error('Error loading class:', error);
+          }
         }
 
         async function loadTeacherData() {
-          const select = document.getElementById('editTeacherSelect');
-          if (!select.value) return;
-          
-          const data = await apiCall('/api/teachers/' + select.value);
-          document.getElementById('editTeacherFname').value = data.data.fname;
-          document.getElementById('editTeacherMname').value = data.data.mname;
-          document.getElementById('editTeacherLname').value = data.data.lname;
-          document.getElementById('editTeacherGender').value = data.data.gender;
+          try {
+            const select = document.getElementById('editTeacherSelect');
+            if (!select.value) return;
+            
+            const response = await fetch('/api/teachers/' + select.value);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            if (!data) return;
+            
+            document.getElementById('editTeacherFname').value = data.fname || '';
+            document.getElementById('editTeacherMname').value = data.mname || '';
+            document.getElementById('editTeacherLname').value = data.lname || '';
+            document.getElementById('editTeacherGender').value = data.gender || '';
+          } catch (error) {
+            console.error('Error loading teacher:', error);
+          }
         }
 
         async function loadStudentData() {
-          const select = document.getElementById('editStudentSelect');
-          if (!select.value) return;
-          
-          const data = await apiCall('/api/students/' + select.value);
-          document.getElementById('editStudentFname').value = data.data.fname;
-          document.getElementById('editStudentMname').value = data.data.mname;
-          document.getElementById('editStudentLname').value = data.data.lname;
-          document.getElementById('editStudentGender').value = data.data.gender;
-          document.getElementById('editStudentAge').value = data.data.age;
+          try {
+            const select = document.getElementById('editStudentSelect');
+            if (!select.value) return;
+            
+            const response = await fetch('/api/students/' + select.value);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            if (!data) return;
+            
+            document.getElementById('editStudentFname').value = data.fname || '';
+            document.getElementById('editStudentMname').value = data.mname || '';
+            document.getElementById('editStudentLname').value = data.lname || '';
+            document.getElementById('editStudentGender').value = data.gender || '';
+            document.getElementById('editStudentAge').value = data.age || '';
+          } catch (error) {
+            console.error('Error loading student:', error);
+          }
         }
 
         async function confirmEdit(type) {
