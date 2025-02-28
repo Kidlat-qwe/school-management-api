@@ -60,6 +60,12 @@ app.get('/api/subjects', async (req, res) => {
 app.post('/api/subjects', async (req, res) => {
   try {
     const { subjectName } = req.body;
+    
+    // Validate required fields
+    if (!subjectName) {
+      return res.status(400).json({ error: 'Subject name is required' });
+    }
+
     const result = await pool.query(
       'INSERT INTO subject (subject_name) VALUES ($1) RETURNING *',
       [subjectName]
@@ -192,6 +198,13 @@ app.post('/api/teachers', async (req, res) => {
   try {
     const { teacherId, fname, mname, lname, gender, status = 'ACTIVE' } = req.body;
     
+    // Validate required fields
+    if (!teacherId || !fname || !lname || !gender) {
+      return res.status(400).json({ 
+        error: 'Teacher ID, first name, last name, and gender are required' 
+      });
+    }
+
     const result = await pool.query(
       'INSERT INTO teacher (teacher_id, fname, mname, lname, gender, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [teacherId, fname, mname, lname, gender, status]
@@ -1265,6 +1278,27 @@ app.get('/', (req, res) => {
         .form-row input {
           flex: 1;
         }
+        .delete-btn {
+          background: #e74c3c;
+          color: white;
+          border: none;
+          padding: 4px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-left: 5px;
+        }
+        .delete-btn:hover {
+          background: #c0392b;
+        }
+        .error-message {
+          color: #e74c3c;
+          font-size: 0.9em;
+          margin-top: 5px;
+        }
+        .required {
+          color: #e74c3c;
+          margin-left: 3px;
+        }
       </style>
     </head>
     <body>
@@ -1285,7 +1319,9 @@ app.get('/', (req, res) => {
           <span class="method">POST</span>
           <span class="path">/api/subjects</span>
           <div class="form-group">
-            <input type="text" id="subjectName" placeholder="Subject Name">
+            <input type="text" id="subjectName" placeholder="Subject Name" required>
+            <span class="required">*</span>
+            <div id="subjectError" class="error-message"></div>
             <button onclick="addSubject()">Add Subject</button>
           </div>
           <div id="addSubjectResponse" class="response"></div>
@@ -1307,10 +1343,14 @@ app.get('/', (req, res) => {
           <span class="method">POST</span>
           <span class="path">/api/classes</span>
           <div class="form-group">
-            <input type="text" id="gradeLevel" placeholder="Grade Level">
-            <input type="text" id="section" placeholder="Section">
-            <input type="text" id="schoolYear" placeholder="School Year">
+            <input type="text" id="gradeLevel" placeholder="Grade Level" required>
+            <span class="required">*</span>
+            <input type="text" id="section" placeholder="Section" required>
+            <span class="required">*</span>
+            <input type="text" id="schoolYear" placeholder="School Year" required>
+            <span class="required">*</span>
             <input type="text" id="classDescription" placeholder="Description">
+            <div id="classError" class="error-message"></div>
             <button onclick="addClass()">Add Class</button>
           </div>
           <div id="addClassResponse" class="response"></div>
@@ -1332,11 +1372,16 @@ app.get('/', (req, res) => {
           <span class="method">POST</span>
           <span class="path">/api/teachers</span>
           <div class="form-group">
-            <input type="text" id="teacherId" placeholder="Teacher ID">
-            <input type="text" id="fname" placeholder="First Name">
+            <input type="text" id="teacherId" placeholder="Teacher ID" required>
+            <span class="required">*</span>
+            <input type="text" id="fname" placeholder="First Name" required>
+            <span class="required">*</span>
             <input type="text" id="mname" placeholder="Middle Name">
-            <input type="text" id="lname" placeholder="Last Name">
-            <input type="text" id="gender" placeholder="Gender">
+            <input type="text" id="lname" placeholder="Last Name" required>
+            <span class="required">*</span>
+            <input type="text" id="gender" placeholder="Gender" required>
+            <span class="required">*</span>
+            <div id="teacherError" class="error-message"></div>
             <button onclick="addTeacher()">Add Teacher</button>
           </div>
           <div id="addTeacherResponse" class="response"></div>
@@ -1359,14 +1404,19 @@ app.get('/', (req, res) => {
           <span class="path">/api/students</span>
           <div class="form-group">
             <div class="form-row">
-              <input type="text" id="studentFname" placeholder="First Name">
+              <input type="text" id="studentFname" placeholder="First Name" required>
+              <span class="required">*</span>
               <input type="text" id="studentMname" placeholder="Middle Name">
-              <input type="text" id="studentLname" placeholder="Last Name">
+              <input type="text" id="studentLname" placeholder="Last Name" required>
+              <span class="required">*</span>
             </div>
             <div class="form-row">
-              <input type="text" id="studentGender" placeholder="Gender">
-              <input type="number" id="studentAge" placeholder="Age">
+              <input type="text" id="studentGender" placeholder="Gender" required>
+              <span class="required">*</span>
+              <input type="number" id="studentAge" placeholder="Age" required>
+              <span class="required">*</span>
             </div>
+            <div id="studentError" class="error-message"></div>
             <button onclick="addStudent()">Add Student</button>
           </div>
           <div id="addStudentResponse" class="response"></div>
@@ -1435,82 +1485,121 @@ app.get('/', (req, res) => {
 
         // Subjects
         async function fetchSubjects() {
-          const responseElement = document.getElementById('subjectsResponse');
-          responseElement.style.display = 'block';
           const result = await apiCall('/api/subjects');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          displayData(result.data, 'subjectsResponse', 'subject');
         }
 
         async function addSubject() {
-          const subjectName = document.getElementById('subjectName').value;
-          const responseElement = document.getElementById('addSubjectResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/subjects', 'POST', { subjectName });
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          try {
+            const subjectName = document.getElementById('subjectName').value;
+            validateRequired({ 'Subject name': subjectName });
+            
+            const result = await apiCall('/api/subjects', 'POST', { subjectName });
+            document.getElementById('subjectError').textContent = '';
+            document.getElementById('addSubjectResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchSubjects();
+          } catch (error) {
+            document.getElementById('subjectError').textContent = error.message;
+          }
         }
 
         // Classes
         async function fetchClasses() {
-          const responseElement = document.getElementById('classesResponse');
-          responseElement.style.display = 'block';
           const result = await apiCall('/api/classes');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          displayData(result.data, 'classesResponse', 'class');
         }
 
         async function addClass() {
-          const body = {
-            grade_level: document.getElementById('gradeLevel').value,
-            section: document.getElementById('section').value,
-            school_year: document.getElementById('schoolYear').value,
-            class_description: document.getElementById('classDescription').value
-          };
-          const result = await apiCall('/api/classes', 'POST', body);
-          document.getElementById('addClassResponse').innerHTML = 
-            '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          try {
+            const fields = {
+              'Grade level': document.getElementById('gradeLevel').value,
+              'Section': document.getElementById('section').value,
+              'School year': document.getElementById('schoolYear').value
+            };
+            validateRequired(fields);
+            
+            const result = await apiCall('/api/classes', 'POST', {
+              grade_level: fields['Grade level'],
+              section: fields['Section'],
+              school_year: fields['School year'],
+              class_description: document.getElementById('classDescription').value
+            });
+            document.getElementById('classError').textContent = '';
+            document.getElementById('addClassResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchClasses();
+          } catch (error) {
+            document.getElementById('classError').textContent = error.message;
+          }
         }
 
         // Teachers
         async function fetchTeachers() {
-          const responseElement = document.getElementById('teachersResponse');
-          responseElement.style.display = 'block';
           const result = await apiCall('/api/teachers');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          displayData(result.data, 'teachersResponse', 'teacher');
         }
 
         async function addTeacher() {
-          const body = {
-            teacherId: document.getElementById('teacherId').value,
-            fname: document.getElementById('fname').value,
-            mname: document.getElementById('mname').value,
-            lname: document.getElementById('lname').value,
-            gender: document.getElementById('gender').value
-          };
-          const result = await apiCall('/api/teachers', 'POST', body);
-          document.getElementById('addTeacherResponse').innerHTML = 
-            '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          try {
+            const fields = {
+              'Teacher ID': document.getElementById('teacherId').value,
+              'First name': document.getElementById('fname').value,
+              'Last name': document.getElementById('lname').value,
+              'Gender': document.getElementById('gender').value
+            };
+            validateRequired(fields);
+            
+            const result = await apiCall('/api/teachers', 'POST', {
+              teacherId: fields['Teacher ID'],
+              fname: fields['First name'],
+              mname: document.getElementById('mname').value,
+              lname: fields['Last name'],
+              gender: fields['Gender']
+            });
+            document.getElementById('teacherError').textContent = '';
+            document.getElementById('addTeacherResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchTeachers();
+          } catch (error) {
+            document.getElementById('teacherError').textContent = error.message;
+          }
         }
 
         // Students
         async function fetchStudents() {
-          const responseElement = document.getElementById('studentsResponse');
-          responseElement.style.display = 'block';
           const result = await apiCall('/api/students');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          displayData(result.data, 'studentsResponse', 'student');
         }
 
         async function addStudent() {
-          const body = {
-            fname: document.getElementById('studentFname').value,
-            mname: document.getElementById('studentMname').value,
-            lname: document.getElementById('studentLname').value,
-            gender: document.getElementById('studentGender').value,
-            age: parseInt(document.getElementById('studentAge').value)
-          };
-          
-          const responseElement = document.getElementById('addStudentResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/students', 'POST', body);
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          try {
+            const fields = {
+              'First name': document.getElementById('studentFname').value,
+              'Last name': document.getElementById('studentLname').value,
+              'Gender': document.getElementById('studentGender').value,
+              'Age': document.getElementById('studentAge').value
+            };
+            validateRequired(fields);
+            
+            if (isNaN(fields['Age']) || parseInt(fields['Age']) <= 0) {
+              throw new Error('Age must be a positive number');
+            }
+            
+            const result = await apiCall('/api/students', 'POST', {
+              fname: fields['First name'],
+              mname: document.getElementById('studentMname').value,
+              lname: fields['Last name'],
+              gender: fields['Gender'],
+              age: parseInt(fields['Age'])
+            });
+            document.getElementById('studentError').textContent = '';
+            document.getElementById('addStudentResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchStudents();
+          } catch (error) {
+            document.getElementById('studentError').textContent = error.message;
+          }
         }
 
         // School Years
@@ -1533,87 +1622,48 @@ app.get('/', (req, res) => {
           responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
         }
 
-        // Confirmation dialog for adding records
-        async function confirmAdd(type, callback) {
-          if (confirm('Are you sure you want to add this ' + type + '?')) {
-            await callback();
+        // Update the display functions to include delete buttons
+        async function displayData(data, containerId, type) {
+          const container = document.getElementById(containerId);
+          if (!data || data.length === 0) {
+            container.innerHTML = '<pre>No data available</pre>';
+            return;
+          }
+          
+          const items = data.map(item => {
+            const itemId = item.id || item.subject_id || item.class_id || item.teacher_id || item.student_id;
+            const deleteButton = '<button class="delete-btn" onclick="confirmDelete(\'' + type + '\', \'' + itemId + '\')">Delete</button>';
+            return '<div>' + JSON.stringify(item) + ' ' + deleteButton + '</div>';
+          });
+          
+          container.innerHTML = items.join('');
+        }
+
+        // Add validation functions
+        function validateRequired(fields) {
+          for (const [field, value] of Object.entries(fields)) {
+            if (!value || value.trim() === '') {
+              throw new Error(field + ' is required');
+            }
           }
         }
 
-        // Confirmation dialog for deleting records
+        // Delete confirmation function
         async function confirmDelete(type, id) {
           if (confirm('Are you sure you want to delete this ' + type + '?')) {
             try {
-              const response = await fetch('/api/' + type + 's/' + id, {
-                method: 'DELETE',
-              });
-              const result = await response.json();
-              alert(result.message);
-              // Refresh the list after deletion
-              window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
+              const result = await apiCall('/api/' + type + 's/' + id, 'DELETE');
+              if (result.success) {
+                alert(type + ' deleted successfully');
+                window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
+              } else {
+                alert('Failed to delete ' + type);
+              }
             } catch (error) {
               console.error('Error:', error);
               alert('Failed to delete ' + type);
             }
           }
-        }
-
-        // Update the add functions to use confirmation
-        async function addSubject() {
-          confirmAdd('subject', async () => {
-            const subjectName = document.getElementById('subjectName').value;
-            const result = await apiCall('/api/subjects', 'POST', { subjectName });
-            document.getElementById('addSubjectResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchSubjects();
-          });
-        }
-
-        async function addClass() {
-          confirmAdd('class', async () => {
-            const body = {
-              grade_level: document.getElementById('gradeLevel').value,
-              section: document.getElementById('section').value,
-              school_year: document.getElementById('schoolYear').value,
-              class_description: document.getElementById('classDescription').value
-            };
-            const result = await apiCall('/api/classes', 'POST', body);
-            document.getElementById('addClassResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchClasses();
-          });
-        }
-
-        async function addTeacher() {
-          confirmAdd('teacher', async () => {
-            const body = {
-              teacherId: document.getElementById('teacherId').value,
-              fname: document.getElementById('fname').value,
-              mname: document.getElementById('mname').value,
-              lname: document.getElementById('lname').value,
-              gender: document.getElementById('gender').value
-            };
-            const result = await apiCall('/api/teachers', 'POST', body);
-            document.getElementById('addTeacherResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchTeachers();
-          });
-        }
-
-        async function addStudent() {
-          confirmAdd('student', async () => {
-            const body = {
-              fname: document.getElementById('studentFname').value,
-              mname: document.getElementById('studentMname').value,
-              lname: document.getElementById('studentLname').value,
-              gender: document.getElementById('studentGender').value,
-              age: parseInt(document.getElementById('studentAge').value)
-            };
-            const result = await apiCall('/api/students', 'POST', body);
-            document.getElementById('addStudentResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchStudents();
-          });
         }
       </script>
     </body>
@@ -1624,4 +1674,4 @@ app.get('/', (req, res) => {
 const PORT = 5174;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-}); 
+});
