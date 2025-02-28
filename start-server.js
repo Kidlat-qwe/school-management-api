@@ -1633,9 +1633,11 @@ app.get('/', (req, res) => {
           <span class="path">/api/subjects</span>
           <div class="form-group">
             <input type="text" id="subjectName" placeholder="Subject Name">
-            <button onclick="addSubject()" class="btn">Add Subject</button>
-            <button onclick="showEditDialog('subject')" class="edit-btn">Edit Subject</button>
-            <button onclick="deleteSubject()" class="delete-btn">Delete Subject</button>
+            <div class="button-group">
+              <button onclick="addSubject()" class="add-btn">Add Subject</button>
+              <button onclick="showEditDialog('subject')" class="edit-btn">Edit Subject</button>
+              <button onclick="deleteSubject()" class="delete-btn">Delete Subject</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1659,9 +1661,11 @@ app.get('/', (req, res) => {
             <input type="text" id="section" placeholder="Section">
             <input type="text" id="schoolYear" placeholder="School Year">
             <input type="text" id="classDescription" placeholder="Description">
-            <button onclick="addClass()" class="btn">Add Class</button>
-            <button onclick="showEditDialog('class')" class="edit-btn">Edit Class</button>
-            <button onclick="deleteClass()" class="delete-btn">Delete Class</button>
+            <div class="button-group">
+              <button onclick="addClass()" class="add-btn">Add Class</button>
+              <button onclick="showEditDialog('class')" class="edit-btn">Edit Class</button>
+              <button onclick="deleteClass()" class="delete-btn">Delete Class</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1686,9 +1690,11 @@ app.get('/', (req, res) => {
             <input type="text" id="mname" placeholder="Middle Name">
             <input type="text" id="lname" placeholder="Last Name">
             <input type="text" id="gender" placeholder="Gender">
-            <button onclick="addTeacher()" class="btn">Add Teacher</button>
-            <button onclick="showEditDialog('teacher')" class="edit-btn">Edit Teacher</button>
-            <button onclick="deleteTeacher()" class="delete-btn">Delete Teacher</button>
+            <div class="button-group">
+              <button onclick="addTeacher()" class="add-btn">Add Teacher</button>
+              <button onclick="showEditDialog('teacher')" class="edit-btn">Edit Teacher</button>
+              <button onclick="deleteTeacher()" class="delete-btn">Delete Teacher</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1714,12 +1720,11 @@ app.get('/', (req, res) => {
             <input type="text" id="studentGender" placeholder="Gender">
             <input type="number" id="studentAge" placeholder="Age">
             <div class="button-group">
-              <button onclick="addStudent()">Add Student</button>
-              <button class="edit-btn" onclick="showEditDialog('student')">Edit Student</button>
-              <button class="delete-btn" onclick="deleteStudent()">Delete Student</button>
+              <button onclick="addStudent()" class="add-btn">Add Student</button>
+              <button onclick="showEditDialog('student')" class="edit-btn">Edit Student</button>
+              <button onclick="deleteStudent()" class="delete-btn">Delete Student</button>
             </div>
           </div>
-          <div id="addStudentResponse" class="response"></div>
         </div>
       </div>
 
@@ -1740,12 +1745,11 @@ app.get('/', (req, res) => {
           <div class="form-group">
             <input type="text" id="schoolYear" placeholder="School Year (e.g., 2023-2024)">
             <div class="button-group">
-              <button onclick="addSchoolYear()">Add School Year</button>
-              <button class="edit-btn" onclick="showEditDialog('schoolYear')">Edit School Year</button>
-              <button class="delete-btn" onclick="deleteSchoolYear()">Delete School Year</button>
+              <button onclick="addSchoolYear()" class="add-btn">Add School Year</button>
+              <button onclick="showEditDialog('schoolYear')" class="edit-btn">Edit School Year</button>
+              <button onclick="deleteSchoolYear()" class="delete-btn">Delete School Year</button>
             </div>
           </div>
-          <div id="addSchoolYearResponse" class="response"></div>
         </div>
       </div>
 
