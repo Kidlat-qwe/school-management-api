@@ -1482,28 +1482,26 @@ app.get('/', (req, res) => {
       <script>
         // Function to create a data table
         function createDataTable(data, columns) {
-          return `
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    ${columns.map(col => `<th>${col.label}</th>`).join('')}
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${data.map(item => `
-                    <tr>
-                      ${columns.map(col => `<td>${item[col.key]}</td>`).join('')}
-                      <td>
-                        <button class="btn btn-danger" onclick="deleteItem('${item.id}', '${columns.type}')">Delete</button>
-                      </td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          `;
+          let tableHtml = '<div class="table-container"><table><thead><tr>';
+          
+          // Add headers
+          columns.forEach(col => {
+            tableHtml += '<th>' + col.label + '</th>';
+          });
+          tableHtml += '<th>Actions</th></tr></thead><tbody>';
+          
+          // Add rows
+          data.forEach(item => {
+            tableHtml += '<tr>';
+            columns.forEach(col => {
+              tableHtml += '<td>' + item[col.key] + '</td>';
+            });
+            tableHtml += '<td><button class="btn btn-danger" onclick="deleteItem(\'' + 
+                        item.id + '\', \'' + columns.type + '\')">Delete</button></td></tr>';
+          });
+          
+          tableHtml += '</tbody></table></div>';
+          return tableHtml;
         }
 
         // Function to load content based on hash
@@ -1517,7 +1515,7 @@ app.get('/', (req, res) => {
           });
           
           // Add active class to current nav item
-          document.querySelector(`a[href="${hash}"]`)?.classList.add('active');
+          document.querySelector('a[href="' + hash + '"]')?.classList.add('active');
           
           try {
             switch(hash) {
@@ -1577,9 +1575,9 @@ app.get('/', (req, res) => {
 
         // Function to delete items
         async function deleteItem(id, type) {
-          if (confirm(`Are you sure you want to delete this ${type.slice(0, -1)}?`)) {
+          if (confirm('Are you sure you want to delete this ' + type.slice(0, -1) + '?')) {
             try {
-              await apiCall(`/api/${type}/${id}`, 'DELETE');
+              await apiCall('/api/' + type + '/' + id, 'DELETE');
               // Reload the current view
               loadContent(window.location.hash);
             } catch (error) {
@@ -1590,59 +1588,22 @@ app.get('/', (req, res) => {
         }
 
         // Add these styles to your existing styles
-        const additionalStyles = `
-          .table-container {
-            margin-top: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            overflow: hidden;
-          }
-
-          table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-
-          th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e9ecef;
-          }
-
-          th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #2c3e50;
-          }
-
-          tr:hover {
-            background-color: #f8f9fa;
-          }
-
-          .btn {
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-            border: none;
-          }
-
-          .btn-danger {
-            background-color: #dc3545;
-            color: white;
-          }
-
-          .btn-danger:hover {
-            background-color: #c82333;
-          }
-
-          .error {
-            color: #dc3545;
-            padding: 20px;
-            text-align: center;
-          }
-        `;
+        const additionalStyles = 
+          '.table-container {' +
+          '  margin-top: 20px;' +
+          '  background: white;' +
+          '  border-radius: 8px;' +
+          '  box-shadow: 0 2px 4px rgba(0,0,0,0.05);' +
+          '  overflow: hidden;' +
+          '}' +
+          'table { width: 100%; border-collapse: collapse; }' +
+          'th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e9ecef; }' +
+          'th { background-color: #f8f9fa; font-weight: 600; color: #2c3e50; }' +
+          'tr:hover { background-color: #f8f9fa; }' +
+          '.btn { padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9em; border: none; }' +
+          '.btn-danger { background-color: #dc3545; color: white; }' +
+          '.btn-danger:hover { background-color: #c82333; }' +
+          '.error { color: #dc3545; padding: 20px; text-align: center; }';
 
         // Add the styles to the document
         const styleSheet = document.createElement("style");
