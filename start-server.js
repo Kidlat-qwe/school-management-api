@@ -1465,7 +1465,7 @@ app.get('/', (req, res) => {
           padding: 4px 8px;
           border-radius: 4px;
           cursor: pointer;
-          margin-left: 5px;
+          margin: 0 5px;
         }
         
         .edit-btn:hover {
@@ -1515,12 +1515,10 @@ app.get('/', (req, res) => {
           <span class="path">/api/subjects</span>
           <div class="form-group">
             <input type="text" id="subjectName" placeholder="Subject Name">
-            <div class="button-group">
-              <button onclick="addSubject()">Add Subject</button>
-              <button class="delete-btn" onclick="deleteSubject()">Delete Subject</button>
-            </div>
+            <button onclick="addSubject()" class="btn">Add Subject</button>
+            <button onclick="showEditDialog('subject')" class="edit-btn">Edit Subject</button>
+            <button onclick="deleteSubject()" class="delete-btn">Delete Subject</button>
           </div>
-          <div id="addSubjectResponse" class="response"></div>
         </div>
       </div>
 
@@ -1543,12 +1541,10 @@ app.get('/', (req, res) => {
             <input type="text" id="section" placeholder="Section">
             <input type="text" id="schoolYear" placeholder="School Year">
             <input type="text" id="classDescription" placeholder="Description">
-            <div class="button-group">
-              <button onclick="addClass()">Add Class</button>
-              <button class="delete-btn" onclick="deleteClass()">Delete Class</button>
-            </div>
+            <button onclick="addClass()" class="btn">Add Class</button>
+            <button onclick="showEditDialog('class')" class="edit-btn">Edit Class</button>
+            <button onclick="deleteClass()" class="delete-btn">Delete Class</button>
           </div>
-          <div id="addClassResponse" class="response"></div>
         </div>
       </div>
 
@@ -1572,12 +1568,10 @@ app.get('/', (req, res) => {
             <input type="text" id="mname" placeholder="Middle Name">
             <input type="text" id="lname" placeholder="Last Name">
             <input type="text" id="gender" placeholder="Gender">
-            <div class="button-group">
-              <button onclick="addTeacher()">Add Teacher</button>
-              <button class="delete-btn" onclick="deleteTeacher()">Delete Teacher</button>
-            </div>
+            <button onclick="addTeacher()" class="btn">Add Teacher</button>
+            <button onclick="showEditDialog('teacher')" class="edit-btn">Edit Teacher</button>
+            <button onclick="deleteTeacher()" class="delete-btn">Delete Teacher</button>
           </div>
-          <div id="addTeacherResponse" class="response"></div>
         </div>
       </div>
 
