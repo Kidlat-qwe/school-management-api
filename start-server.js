@@ -1313,6 +1313,25 @@ app.get('/', (req, res) => {
           background: rgba(0,0,0,0.5);
           z-index: 999;
         }
+        .delete-form {
+          margin: 15px 0;
+        }
+        .delete-form .form-group {
+          margin: 10px 0;
+        }
+        .delete-form label {
+          display: block;
+          margin-bottom: 5px;
+          font-weight: bold;
+        }
+        .delete-form select,
+        .delete-form input {
+          width: 100%;
+          padding: 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          margin-top: 5px;
+        }
       </style>
     </head>
     <body>
@@ -1687,52 +1706,68 @@ app.get('/', (req, res) => {
           document.getElementById(dialogId).style.display = 'none';
         }
 
+        function updateIdField(type) {
+          const select = document.getElementById(type + 'Select');
+          const idField = document.getElementById(type + 'Id');
+          idField.value = select.value;
+        }
+
         async function deleteSubject() {
           const subjects = await apiCall('/api/subjects');
           const select = document.getElementById('subjectSelect');
-          select.innerHTML = subjects.data.map(subject => (
-            '<option value="' + subject.subject_id + '">' + subject.subject_name + '</option>'
-          )).join('');
+          select.innerHTML = '<option value="">Select a subject...</option>' +
+            subjects.data.map(subject => (
+              '<option value="' + subject.subject_id + '">' + 
+              subject.subject_name + ' (ID: ' + subject.subject_id + ')</option>'
+            )).join('');
           showDeleteDialog('deleteSubjectDialog');
         }
 
         async function deleteClass() {
           const classes = await apiCall('/api/classes');
           const select = document.getElementById('classSelect');
-          select.innerHTML = classes.data.map(cls => (
-            '<option value="' + cls.class_id + '">Grade ' + cls.grade_level + '-' + cls.section + ' (' + cls.school_year + ')</option>'
-          )).join('');
+          select.innerHTML = '<option value="">Select a class...</option>' +
+            classes.data.map(cls => (
+              '<option value="' + cls.class_id + '">Grade ' + 
+              cls.grade_level + '-' + cls.section + ' (' + cls.school_year + 
+              ') (ID: ' + cls.class_id + ')</option>'
+            )).join('');
           showDeleteDialog('deleteClassDialog');
         }
 
         async function deleteTeacher() {
           const teachers = await apiCall('/api/teachers');
           const select = document.getElementById('teacherSelect');
-          select.innerHTML = teachers.data.map(teacher => (
-            '<option value="' + teacher.teacher_id + '">' + teacher.fname + ' ' + teacher.lname + '</option>'
-          )).join('');
+          select.innerHTML = '<option value="">Select a teacher...</option>' +
+            teachers.data.map(teacher => (
+              '<option value="' + teacher.teacher_id + '">' + 
+              teacher.fname + ' ' + teacher.lname + ' (ID: ' + teacher.teacher_id + ')</option>'
+            )).join('');
           showDeleteDialog('deleteTeacherDialog');
         }
 
         async function deleteStudent() {
           const students = await apiCall('/api/students');
           const select = document.getElementById('studentSelect');
-          select.innerHTML = students.data.map(student => (
-            '<option value="' + student.student_id + '">' + student.fname + ' ' + student.lname + '</option>'
-          )).join('');
+          select.innerHTML = '<option value="">Select a student...</option>' +
+            students.data.map(student => (
+              '<option value="' + student.student_id + '">' + 
+              student.fname + ' ' + student.lname + ' (ID: ' + student.student_id + ')</option>'
+            )).join('');
           showDeleteDialog('deleteStudentDialog');
         }
 
         async function confirmDelete(type) {
+          const idField = document.getElementById(type + 'Id');
           const select = document.getElementById(type + 'Select');
-          const id = select.value;
+          const id = idField.value || select.value;
           
           if (!id) {
-            alert('Please select an item to delete');
+            alert('Please select an item or enter an ID to delete');
             return;
           }
 
-          if (confirm('Are you sure you want to delete this ' + type + '?')) {
+          if (confirm('Are you sure you want to delete ' + type + ' with ID: ' + id + '?')) {
             try {
               const response = await fetch('/api/' + type + 's/' + id, {
                 method: 'DELETE'
@@ -1740,12 +1775,12 @@ app.get('/', (req, res) => {
               const result = await response.json();
               
               if (response.ok) {
-                alert(result.message || type + ' deleted successfully');
+                alert(result.message || type + ' with ID ' + id + ' deleted successfully');
                 closeDeleteDialog('delete' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog');
                 // Refresh the list
                 window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
               } else {
-                throw new Error(result.error || 'Failed to delete ' + type);
+                throw new Error(result.error || 'Failed to delete ' + type + ' with ID ' + id);
               }
             } catch (error) {
               alert(error.message);
@@ -1758,7 +1793,16 @@ app.get('/', (req, res) => {
       
       <div id="deleteSubjectDialog" class="delete-dialog">
         <h3>Delete Subject</h3>
-        <select id="subjectSelect"></select>
+        <div class="delete-form">
+          <div class="form-group">
+            <label>Select Subject:</label>
+            <select id="subjectSelect" onchange="updateIdField('subject')"></select>
+          </div>
+          <div class="form-group">
+            <label>Or Enter Subject ID:</label>
+            <input type="text" id="subjectId" placeholder="Enter Subject ID">
+          </div>
+        </div>
         <div class="button-group">
           <button onclick="closeDeleteDialog('deleteSubjectDialog')">Cancel</button>
           <button class="delete-btn" onclick="confirmDelete('subject')">Delete</button>
@@ -1767,7 +1811,16 @@ app.get('/', (req, res) => {
 
       <div id="deleteClassDialog" class="delete-dialog">
         <h3>Delete Class</h3>
-        <select id="classSelect"></select>
+        <div class="delete-form">
+          <div class="form-group">
+            <label>Select Class:</label>
+            <select id="classSelect" onchange="updateIdField('class')"></select>
+          </div>
+          <div class="form-group">
+            <label>Or Enter Class ID:</label>
+            <input type="text" id="classId" placeholder="Enter Class ID">
+          </div>
+        </div>
         <div class="button-group">
           <button onclick="closeDeleteDialog('deleteClassDialog')">Cancel</button>
           <button class="delete-btn" onclick="confirmDelete('class')">Delete</button>
@@ -1776,7 +1829,16 @@ app.get('/', (req, res) => {
 
       <div id="deleteTeacherDialog" class="delete-dialog">
         <h3>Delete Teacher</h3>
-        <select id="teacherSelect"></select>
+        <div class="delete-form">
+          <div class="form-group">
+            <label>Select Teacher:</label>
+            <select id="teacherSelect" onchange="updateIdField('teacher')"></select>
+          </div>
+          <div class="form-group">
+            <label>Or Enter Teacher ID:</label>
+            <input type="text" id="teacherId" placeholder="Enter Teacher ID">
+          </div>
+        </div>
         <div class="button-group">
           <button onclick="closeDeleteDialog('deleteTeacherDialog')">Cancel</button>
           <button class="delete-btn" onclick="confirmDelete('teacher')">Delete</button>
@@ -1785,7 +1847,16 @@ app.get('/', (req, res) => {
 
       <div id="deleteStudentDialog" class="delete-dialog">
         <h3>Delete Student</h3>
-        <select id="studentSelect"></select>
+        <div class="delete-form">
+          <div class="form-group">
+            <label>Select Student:</label>
+            <select id="studentSelect" onchange="updateIdField('student')"></select>
+          </div>
+          <div class="form-group">
+            <label>Or Enter Student ID:</label>
+            <input type="text" id="studentId" placeholder="Enter Student ID">
+          </div>
+        </div>
         <div class="button-group">
           <button onclick="closeDeleteDialog('deleteStudentDialog')">Cancel</button>
           <button class="delete-btn" onclick="confirmDelete('student')">Delete</button>
