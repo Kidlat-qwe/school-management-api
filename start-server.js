@@ -2190,20 +2190,33 @@ app.get('/', (req, res) => {
         async function loadClassData() {
           try {
             const select = document.getElementById('editClassSelect');
-            if (!select.value) return;
+            if (!select.value) {
+              // Clear form fields when no class is selected
+              document.getElementById('editGradeLevel').value = '';
+              document.getElementById('editSection').value = '';
+              document.getElementById('editClassSchoolYear').value = '';
+              document.getElementById('editClassDescription').value = '';
+              return;
+            }
             
             const response = await fetch('/api/classes/' + select.value);
-            if (!response.ok) return;
+            if (!response.ok) {
+              throw new Error('Failed to load class data');
+            }
             
             const data = await response.json();
-            if (!data) return;
+            if (!data) {
+              throw new Error('No data received');
+            }
             
+            // Set form field values, using empty string as fallback
             document.getElementById('editGradeLevel').value = data.grade_level || '';
             document.getElementById('editSection').value = data.section || '';
             document.getElementById('editClassSchoolYear').value = data.school_year || '';
             document.getElementById('editClassDescription').value = data.class_description || '';
           } catch (error) {
             console.error('Error loading class:', error);
+            alert('Error loading class data: ' + error.message);
           }
         }
 
@@ -2259,15 +2272,26 @@ app.get('/', (req, res) => {
           switch(type) {
             case 'subject':
               data = {
-                subject_name: document.getElementById('editSubjectName').value  // Changed from subjectName
+                subject_name: document.getElementById('editSubjectName').value
               };
               break;
             case 'class':
+              const gradeLevel = document.getElementById('editGradeLevel').value;
+              const section = document.getElementById('editSection').value;
+              const schoolYear = document.getElementById('editClassSchoolYear').value;
+              const description = document.getElementById('editClassDescription').value;
+              
+              // Validate required fields
+              if (!gradeLevel || !section || !schoolYear) {
+                alert('Grade Level, Section, and School Year are required');
+                return;
+              }
+              
               data = {
-                grade_level: document.getElementById('editGradeLevel').value,
-                section: document.getElementById('editSection').value,
-                school_year: document.getElementById('editClassSchoolYear').value,
-                class_description: document.getElementById('editClassDescription').value
+                grade_level: gradeLevel,
+                section: section,
+                school_year: schoolYear,
+                class_description: description || null  // Make description optional
               };
               break;
             case 'teacher':
@@ -2450,23 +2474,25 @@ app.get('/', (req, res) => {
         <div class="edit-form">
           <div class="form-group">
             <label>Select Class:</label>
-            <select id="editClassSelect" onchange="loadClassData()"></select>
+            <select id="editClassSelect" onchange="loadClassData()" required>
+              <option value="">Select a class...</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Grade Level:</label>
-            <input type="text" id="editGradeLevel">
+            <input type="text" id="editGradeLevel" required pattern="[0-9]+" title="Please enter a valid grade level (numbers only)">
           </div>
           <div class="form-group">
             <label>Section:</label>
-            <input type="text" id="editSection">
+            <input type="text" id="editSection" required pattern="[A-Za-z0-9-]+" title="Please enter a valid section (letters, numbers, and hyphens only)">
           </div>
           <div class="form-group">
             <label>School Year:</label>
-            <input type="text" id="editClassSchoolYear">
+            <input type="text" id="editClassSchoolYear" required pattern="\d{4}-\d{4}" title="Please enter a valid school year (e.g., 2023-2024)">
           </div>
           <div class="form-group">
             <label>Description:</label>
-            <input type="text" id="editClassDescription">
+            <textarea id="editClassDescription" rows="3" placeholder="Optional class description"></textarea>
           </div>
         </div>
         <div class="button-group">
