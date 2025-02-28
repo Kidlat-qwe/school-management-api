@@ -1810,16 +1810,27 @@ app.get('/', (req, res) => {
         // Utility function to handle API calls
         async function apiCall(endpoint, method = 'GET', body = null) {
           try {
-            const response = await fetch(endpoint, {
+            const options = {
               method,
               headers: {
-                'Content-Type': 'application/json',
-              },
-              body: body ? JSON.stringify(body) : null
-            });
+                'Content-Type': 'application/json'
+              }
+            };
+            
+            if (body) {
+              options.body = JSON.stringify(body);
+            }
+            
+            const response = await fetch(endpoint, options);
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'API request failed');
+            }
+            
             const data = await response.json();
             return { success: true, data };
           } catch (error) {
+            console.error('API Error:', error);
             return { success: false, error: error.message };
           }
         }
@@ -2136,32 +2147,41 @@ app.get('/', (req, res) => {
         }
 
         async function loadEditData(type) {
-          const data = await apiCall('/api/' + type + 's');
-          const select = document.getElementById('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Select');
-          
-          select.innerHTML = '<option value="">Select a ' + type + '...</option>';
-          
-          switch(type) {
-            case 'subject':
-              data.data.forEach(item => {
-                select.innerHTML += '<option value="' + item.subject_id + '">' + item.subject_name + '</option>';
-              });
-              break;
-            case 'class':
-              data.data.forEach(item => {
-                select.innerHTML += '<option value="' + item.class_id + '">Grade ' + item.grade_level + '-' + item.section + ' (' + item.school_year + ')</option>';
-              });
-              break;
-            case 'teacher':
-              data.data.forEach(item => {
-                select.innerHTML += '<option value="' + item.teacher_id + '">' + item.fname + ' ' + item.lname + '</option>';
-              });
-              break;
-            case 'student':
-              data.data.forEach(item => {
-                select.innerHTML += '<option value="' + item.student_id + '">' + item.fname + ' ' + item.lname + '</option>';
-              });
-              break;
+          try {
+            const data = await apiCall('/api/' + type + 's');
+            if (!data || !data.data) {
+              throw new Error('Failed to load ' + type + ' data');
+            }
+            
+            const select = document.getElementById('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Select');
+            select.innerHTML = '<option value="">Select a ' + type + '...</option>';
+            
+            switch(type) {
+              case 'subject':
+                data.data.forEach(item => {
+                  select.innerHTML += '<option value="' + item.subject_id + '">' + item.subject_name + '</option>';
+                });
+                break;
+              case 'class':
+                data.data.forEach(item => {
+                  select.innerHTML += '<option value="' + item.class_id + '">Grade ' + 
+                    item.grade_level + ' - ' + item.section + ' (' + item.school_year + ')</option>';
+                });
+                break;
+              case 'teacher':
+                data.data.forEach(item => {
+                  select.innerHTML += '<option value="' + item.teacher_id + '">' + item.fname + ' ' + item.lname + '</option>';
+                });
+                break;
+              case 'student':
+                data.data.forEach(item => {
+                  select.innerHTML += '<option value="' + item.student_id + '">' + item.fname + ' ' + item.lname + '</option>';
+                });
+                break;
+            }
+          } catch (error) {
+            console.error('Error loading ' + type + ' data:', error);
+            alert('Error loading ' + type + ' data: ' + error.message);
           }
         }
 
@@ -2473,31 +2493,31 @@ app.get('/', (req, res) => {
         <h3>Edit Class</h3>
         <div class="edit-form">
           <div class="form-group">
-            <label>Select Class:</label>
+            <label for="editClassSelect">Select Class:</label>
             <select id="editClassSelect" onchange="loadClassData()" required>
               <option value="">Select a class...</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Grade Level:</label>
+            <label for="editGradeLevel">Grade Level:</label>
             <input type="text" id="editGradeLevel" required pattern="[0-9]+" title="Please enter a valid grade level (numbers only)">
           </div>
           <div class="form-group">
-            <label>Section:</label>
+            <label for="editSection">Section:</label>
             <input type="text" id="editSection" required pattern="[A-Za-z0-9-]+" title="Please enter a valid section (letters, numbers, and hyphens only)">
           </div>
           <div class="form-group">
-            <label>School Year:</label>
+            <label for="editClassSchoolYear">School Year:</label>
             <input type="text" id="editClassSchoolYear" required pattern="\d{4}-\d{4}" title="Please enter a valid school year (e.g., 2023-2024)">
           </div>
           <div class="form-group">
-            <label>Description:</label>
+            <label for="editClassDescription">Description:</label>
             <textarea id="editClassDescription" rows="3" placeholder="Optional class description"></textarea>
           </div>
         </div>
         <div class="button-group">
-          <button onclick="closeEditDialog('editClassDialog')">Cancel</button>
-          <button class="edit-btn" onclick="confirmEdit('class')">Save Changes</button>
+          <button type="button" onclick="closeEditDialog('editClassDialog')" class="cancel-btn">Cancel</button>
+          <button type="button" onclick="confirmEdit('class')" class="save-btn">Save Changes</button>
         </div>
       </div>
 
