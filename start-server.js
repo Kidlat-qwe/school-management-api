@@ -1036,24 +1036,24 @@ app.get('/api/class-grades/:classId', async (req, res) => {
 app.get('/api/active-school-year', async (req, res) => {
   try {
     const query = `
-      SELECT school_year
-      FROM school_year
-      WHERE is_active = true
-      LIMIT 1
-    `;
-    
-    const result = await pool.query(query);
-    
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'No active school year found' });
-      return;
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching active school year:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    SELECT school_year
+    FROM school_year
+    WHERE is_active = true
+    LIMIT 1
+  `;
+  
+  const result = await pool.query(query);
+  
+  if (result.rows.length === 0) {
+    res.status(404).json({ error: 'No active school year found' });
+    return;
   }
+  
+  res.json(result.rows[0]);
+} catch (error) {
+  console.error('Error fetching active school year:', error);
+  res.status(500).json({ error: 'Internal server error' });
+}
 });
 
 // DELETE endpoint for subjects
@@ -1290,6 +1290,15 @@ app.get('/', (req, res) => {
           </div>
           <div id="addSubjectResponse" class="response"></div>
         </div>
+        <div class="endpoint delete">
+          <span class="method">DELETE</span>
+          <span class="path">/api/subjects/:id</span>
+          <div class="form-group">
+            <input type="text" id="deleteSubjectId" placeholder="Subject ID">
+            <button onclick="deleteSubject()">Delete Subject</button>
+          </div>
+          <div id="deleteSubjectResponse" class="response"></div>
+        </div>
       </div>
 
       <div class="section">
@@ -1314,6 +1323,15 @@ app.get('/', (req, res) => {
             <button onclick="addClass()">Add Class</button>
           </div>
           <div id="addClassResponse" class="response"></div>
+        </div>
+        <div class="endpoint delete">
+          <span class="method">DELETE</span>
+          <span class="path">/api/classes/:id</span>
+          <div class="form-group">
+            <input type="text" id="deleteClassId" placeholder="Class ID">
+            <button onclick="deleteClass()">Delete Class</button>
+          </div>
+          <div id="deleteClassResponse" class="response"></div>
         </div>
       </div>
 
@@ -1340,6 +1358,15 @@ app.get('/', (req, res) => {
             <button onclick="addTeacher()">Add Teacher</button>
           </div>
           <div id="addTeacherResponse" class="response"></div>
+        </div>
+        <div class="endpoint delete">
+          <span class="method">DELETE</span>
+          <span class="path">/api/teachers/:id</span>
+          <div class="form-group">
+            <input type="text" id="deleteTeacherId" placeholder="Teacher ID">
+            <button onclick="deleteTeacher()">Delete Teacher</button>
+          </div>
+          <div id="deleteTeacherResponse" class="response"></div>
         </div>
       </div>
 
@@ -1370,6 +1397,15 @@ app.get('/', (req, res) => {
             <button onclick="addStudent()">Add Student</button>
           </div>
           <div id="addStudentResponse" class="response"></div>
+        </div>
+        <div class="endpoint delete">
+          <span class="method">DELETE</span>
+          <span class="path">/api/students/:id</span>
+          <div class="form-group">
+            <input type="text" id="deleteStudentId" placeholder="Student ID">
+            <button onclick="deleteStudent()">Delete Student</button>
+          </div>
+          <div id="deleteStudentResponse" class="response"></div>
         </div>
       </div>
 
@@ -1533,87 +1569,93 @@ app.get('/', (req, res) => {
           responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
         }
 
-        // Confirmation dialog for adding records
-        async function confirmAdd(type, callback) {
-          if (confirm('Are you sure you want to add this ' + type + '?')) {
-            await callback();
+        // Delete functions
+        async function deleteSubject() {
+          const id = document.getElementById('deleteSubjectId').value;
+          if (!id) {
+            alert('Please enter a Subject ID');
+            return;
           }
-        }
-
-        // Confirmation dialog for deleting records
-        async function confirmDelete(type, id) {
-          if (confirm('Are you sure you want to delete this ' + type + '?')) {
+          
+          if (confirm('Are you sure you want to delete this subject?')) {
+            const responseElement = document.getElementById('deleteSubjectResponse');
+            responseElement.style.display = 'block';
+            
             try {
-              const response = await fetch('/api/' + type + 's/' + id, {
-                method: 'DELETE',
-              });
-              const result = await response.json();
-              alert(result.message);
-              // Refresh the list after deletion
-              window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
+              const result = await apiCall('/api/subjects/' + id, 'DELETE');
+              responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+              // Refresh subjects list
+              fetchSubjects();
             } catch (error) {
-              console.error('Error:', error);
-              alert('Failed to delete ' + type);
+              responseElement.innerHTML = '<pre>Error: ' + error.message + '</pre>';
             }
           }
         }
 
-        // Update the add functions to use confirmation
-        async function addSubject() {
-          confirmAdd('subject', async () => {
-            const subjectName = document.getElementById('subjectName').value;
-            const result = await apiCall('/api/subjects', 'POST', { subjectName });
-            document.getElementById('addSubjectResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchSubjects();
-          });
+        async function deleteClass() {
+          const id = document.getElementById('deleteClassId').value;
+          if (!id) {
+            alert('Please enter a Class ID');
+            return;
+          }
+          
+          if (confirm('Are you sure you want to delete this class?')) {
+            const responseElement = document.getElementById('deleteClassResponse');
+            responseElement.style.display = 'block';
+            
+            try {
+              const result = await apiCall('/api/classes/' + id, 'DELETE');
+              responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+              // Refresh classes list
+              fetchClasses();
+            } catch (error) {
+              responseElement.innerHTML = '<pre>Error: ' + error.message + '</pre>';
+            }
+          }
         }
 
-        async function addClass() {
-          confirmAdd('class', async () => {
-            const body = {
-              grade_level: document.getElementById('gradeLevel').value,
-              section: document.getElementById('section').value,
-              school_year: document.getElementById('schoolYear').value,
-              class_description: document.getElementById('classDescription').value
-            };
-            const result = await apiCall('/api/classes', 'POST', body);
-            document.getElementById('addClassResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchClasses();
-          });
+        async function deleteTeacher() {
+          const id = document.getElementById('deleteTeacherId').value;
+          if (!id) {
+            alert('Please enter a Teacher ID');
+            return;
+          }
+          
+          if (confirm('Are you sure you want to delete this teacher?')) {
+            const responseElement = document.getElementById('deleteTeacherResponse');
+            responseElement.style.display = 'block';
+            
+            try {
+              const result = await apiCall('/api/teachers/' + id, 'DELETE');
+              responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+              // Refresh teachers list
+              fetchTeachers();
+            } catch (error) {
+              responseElement.innerHTML = '<pre>Error: ' + error.message + '</pre>';
+            }
+          }
         }
 
-        async function addTeacher() {
-          confirmAdd('teacher', async () => {
-            const body = {
-              teacherId: document.getElementById('teacherId').value,
-              fname: document.getElementById('fname').value,
-              mname: document.getElementById('mname').value,
-              lname: document.getElementById('lname').value,
-              gender: document.getElementById('gender').value
-            };
-            const result = await apiCall('/api/teachers', 'POST', body);
-            document.getElementById('addTeacherResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchTeachers();
-          });
-        }
-
-        async function addStudent() {
-          confirmAdd('student', async () => {
-            const body = {
-              fname: document.getElementById('studentFname').value,
-              mname: document.getElementById('studentMname').value,
-              lname: document.getElementById('studentLname').value,
-              gender: document.getElementById('studentGender').value,
-              age: parseInt(document.getElementById('studentAge').value)
-            };
-            const result = await apiCall('/api/students', 'POST', body);
-            document.getElementById('addStudentResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchStudents();
-          });
+        async function deleteStudent() {
+          const id = document.getElementById('deleteStudentId').value;
+          if (!id) {
+            alert('Please enter a Student ID');
+            return;
+          }
+          
+          if (confirm('Are you sure you want to delete this student?')) {
+            const responseElement = document.getElementById('deleteStudentResponse');
+            responseElement.style.display = 'block';
+            
+            try {
+              const result = await apiCall('/api/students/' + id, 'DELETE');
+              responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+              // Refresh students list
+              fetchStudents();
+            } catch (error) {
+              responseElement.innerHTML = '<pre>Error: ' + error.message + '</pre>';
+            }
+          }
         }
       </script>
     </body>
