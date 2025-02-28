@@ -1265,6 +1265,44 @@ app.get('/', (req, res) => {
         .form-row input {
           flex: 1;
         }
+        
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 10px;
+          background: white;
+        }
+        
+        th, td {
+          padding: 8px;
+          text-align: left;
+          border: 1px solid #ddd;
+        }
+        
+        th {
+          background-color: #f5f6fa;
+          font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+        
+        tr:hover {
+          background-color: #f5f5f5;
+        }
+        
+        button {
+          padding: 5px 10px;
+          border: none;
+          border-radius: 3px;
+          cursor: pointer;
+          color: white;
+        }
+        
+        button:hover {
+          opacity: 0.9;
+        }
       </style>
     </head>
     <body>
@@ -1438,7 +1476,17 @@ app.get('/', (req, res) => {
           const responseElement = document.getElementById('subjectsResponse');
           responseElement.style.display = 'block';
           const result = await apiCall('/api/subjects');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          
+          // Create a table view of the data with delete buttons
+          let tableHtml = '<table style="width:100%; border-collapse: collapse;">';
+          tableHtml += '<tr><th>Subject ID</th><th>Subject Name</th><th>Actions</th></tr>';
+          
+          result.data.forEach(subject => {
+            tableHtml += '<tr><td>' + subject.subject_id + '</td><td>' + subject.subject_name + '</td><td><button onclick="confirmDelete(\'subject\', ' + subject.subject_id + ')" style="background-color: #e74c3c;">Delete</button></td></tr>';
+          });
+          
+          tableHtml += '</table>';
+          responseElement.innerHTML = tableHtml;
         }
 
         async function addSubject() {
@@ -1454,7 +1502,16 @@ app.get('/', (req, res) => {
           const responseElement = document.getElementById('classesResponse');
           responseElement.style.display = 'block';
           const result = await apiCall('/api/classes');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          
+          let tableHtml = '<table style="width:100%; border-collapse: collapse;">';
+          tableHtml += '<tr><th>Class ID</th><th>Grade Level</th><th>Section</th><th>School Year</th><th>Actions</th></tr>';
+          
+          result.data.forEach(cls => {
+            tableHtml += '<tr><td>' + cls.class_id + '</td><td>' + cls.grade_level + '</td><td>' + cls.section + '</td><td>' + cls.school_year + '</td><td><button onclick="confirmDelete(\'class\', ' + cls.class_id + ')" style="background-color: #e74c3c;">Delete</button></td></tr>';
+          });
+          
+          tableHtml += '</table>';
+          responseElement.innerHTML = tableHtml;
         }
 
         async function addClass() {
@@ -1474,7 +1531,16 @@ app.get('/', (req, res) => {
           const responseElement = document.getElementById('teachersResponse');
           responseElement.style.display = 'block';
           const result = await apiCall('/api/teachers');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          
+          let tableHtml = '<table style="width:100%; border-collapse: collapse;">';
+          tableHtml += '<tr><th>Teacher ID</th><th>Name</th><th>Gender</th><th>Actions</th></tr>';
+          
+          result.data.forEach(teacher => {
+            tableHtml += '<tr><td>' + teacher.teacher_id + '</td><td>' + teacher.fname + ' ' + teacher.mname + ' ' + teacher.lname + '</td><td>' + teacher.gender + '</td><td><button onclick="confirmDelete(\'teacher\', \'' + teacher.teacher_id + '\')" style="background-color: #e74c3c;">Delete</button></td></tr>';
+          });
+          
+          tableHtml += '</table>';
+          responseElement.innerHTML = tableHtml;
         }
 
         async function addTeacher() {
@@ -1495,7 +1561,16 @@ app.get('/', (req, res) => {
           const responseElement = document.getElementById('studentsResponse');
           responseElement.style.display = 'block';
           const result = await apiCall('/api/students');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+          
+          let tableHtml = '<table style="width:100%; border-collapse: collapse;">';
+          tableHtml += '<tr><th>Student ID</th><th>Name</th><th>Gender</th><th>Age</th><th>Actions</th></tr>';
+          
+          result.data.forEach(student => {
+            tableHtml += '<tr><td>' + student.student_id + '</td><td>' + student.fname + ' ' + student.mname + ' ' + student.lname + '</td><td>' + student.gender + '</td><td>' + student.age + '</td><td><button onclick="confirmDelete(\'student\', ' + student.student_id + ')" style="background-color: #e74c3c;">Delete</button></td></tr>';
+          });
+          
+          tableHtml += '</table>';
+          responseElement.innerHTML = tableHtml;
         }
 
         async function addStudent() {
