@@ -1670,17 +1670,14 @@ app.get('/', (req, res) => {
           <span class="method">POST</span>
           <span class="path">/api/students</span>
           <div class="form-group">
-            <div class="form-row">
-              <input type="text" id="studentFname" placeholder="First Name">
-              <input type="text" id="studentMname" placeholder="Middle Name">
-              <input type="text" id="studentLname" placeholder="Last Name">
-            </div>
-            <div class="form-row">
-              <input type="text" id="studentGender" placeholder="Gender">
-              <input type="number" id="studentAge" placeholder="Age">
-            </div>
+            <input type="text" id="studentFname" placeholder="First Name">
+            <input type="text" id="studentMname" placeholder="Middle Name">
+            <input type="text" id="studentLname" placeholder="Last Name">
+            <input type="text" id="studentGender" placeholder="Gender">
+            <input type="number" id="studentAge" placeholder="Age">
             <div class="button-group">
               <button onclick="addStudent()">Add Student</button>
+              <button class="edit-btn" onclick="showEditDialog('student')">Edit Student</button>
               <button class="delete-btn" onclick="deleteStudent()">Delete Student</button>
             </div>
           </div>
