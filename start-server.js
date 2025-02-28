@@ -1420,831 +1420,87 @@ app.get('/', (req, res) => {
           border-radius: 4px;
           margin-top: 5px;
         }
+        .action-buttons {
+          display: flex;
+          gap: 8px;
+          margin-top: 10px;
+        }
+        
+        .update-btn {
+          background: #3498db;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background 0.3s;
+        }
+        
+        .update-btn:hover {
+          background: #2980b9;
+        }
+
+        .item {
+          background: white;
+          padding: 15px;
+          margin: 10px 0;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .item-content {
+          flex-grow: 1;
+        }
+
+        .button-group {
+          display: flex;
+          gap: 8px;
+        }
       </style>
     </head>
     <body>
       <h1>School DB API v1.0</h1>
-
-      <div class="section">
-        <h2>Subjects</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/subjects</span>
-          <div class="button-group">
-            <button onclick="fetchSubjects()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('subjectsResponse')">Close</button>
-          </div>
-          <div id="subjectsResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/subjects</span>
-          <div class="form-group">
-            <input type="text" id="subjectName" placeholder="Subject Name">
-            <div class="button-group">
-              <button onclick="addSubject()">Add Subject</button>
-              <button class="delete-btn" onclick="deleteSubject()">Delete Subject</button>
-            </div>
-          </div>
-          <div id="addSubjectResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Classes</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/classes</span>
-          <div class="button-group">
-            <button onclick="fetchClasses()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('classesResponse')">Close</button>
-          </div>
-          <div id="classesResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/classes</span>
-          <div class="form-group">
-            <input type="text" id="gradeLevel" placeholder="Grade Level">
-            <input type="text" id="section" placeholder="Section">
-            <input type="text" id="schoolYear" placeholder="School Year">
-            <input type="text" id="classDescription" placeholder="Description">
-            <div class="button-group">
-              <button onclick="addClass()">Add Class</button>
-              <button class="delete-btn" onclick="deleteClass()">Delete Class</button>
-            </div>
-          </div>
-          <div id="addClassResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Teachers</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/teachers</span>
-          <div class="button-group">
-            <button onclick="fetchTeachers()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('teachersResponse')">Close</button>
-          </div>
-          <div id="teachersResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/teachers</span>
-          <div class="form-group">
-            <input type="text" id="teacherId" placeholder="Teacher ID">
-            <input type="text" id="fname" placeholder="First Name">
-            <input type="text" id="mname" placeholder="Middle Name">
-            <input type="text" id="lname" placeholder="Last Name">
-            <input type="text" id="gender" placeholder="Gender">
-            <div class="button-group">
-              <button onclick="addTeacher()">Add Teacher</button>
-              <button class="delete-btn" onclick="deleteTeacher()">Delete Teacher</button>
-            </div>
-          </div>
-          <div id="addTeacherResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Students</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/students</span>
-          <div class="button-group">
-            <button onclick="fetchStudents()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('studentsResponse')">Close</button>
-          </div>
-          <div id="studentsResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/students</span>
-          <div class="form-group">
-            <div class="form-row">
-              <input type="text" id="studentFname" placeholder="First Name">
-              <input type="text" id="studentMname" placeholder="Middle Name">
-              <input type="text" id="studentLname" placeholder="Last Name">
-            </div>
-            <div class="form-row">
-              <input type="text" id="studentGender" placeholder="Gender">
-              <input type="number" id="studentAge" placeholder="Age">
-            </div>
-            <div class="button-group">
-              <button onclick="addStudent()">Add Student</button>
-              <button class="delete-btn" onclick="deleteStudent()">Delete Student</button>
-            </div>
-          </div>
-          <div id="addStudentResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>School Year</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/school-years</span>
-          <div class="button-group">
-            <button onclick="fetchSchoolYears()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('schoolYearsResponse')">Close</button>
-          </div>
-          <div id="schoolYearsResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/school-years</span>
-          <div class="form-group">
-            <input type="text" id="schoolYear" placeholder="School Year (e.g., 2023-2024)">
-            <div class="form-row">
-              <button onclick="addSchoolYear()">Add School Year</button>
-            </div>
-          </div>
-          <div id="addSchoolYearResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Authentication</h2>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/auth/login</span>
-        </div>
-      </div>
-
-      <script>
-        // Utility function to handle API calls
-        async function apiCall(endpoint, method = 'GET', body = null) {
-          try {
-            const options = {
-              method,
-              headers: {
-                'Content-Type': 'application/json'
-              }
-            };
-
-            if (body) {
-              options.body = JSON.stringify(body);
-            }
-
-            const response = await fetch(endpoint, options);
-            const data = await response.json();
-
-            if (!response.ok) {
-              throw new Error(data.error || 'API call failed');
-            }
-
-            return { success: true, data };
-          } catch (error) {
-            return { success: false, error: error.message };
-          }
-        }
-
-        // Add toggle function
-        function toggleResponse(elementId) {
-          const element = document.getElementById(elementId);
-          if (element.style.display === 'none' || !element.style.display) {
-            element.style.display = 'block';
-          } else {
-            element.style.display = 'none';
-          }
-        }
-
-        // Subjects
-        async function fetchSubjects() {
-          const result = await apiCall('/api/subjects');
-          if (result.success) {
-            updateDisplay('subject', result.data);
-          }
-        }
-
-        async function addSubject() {
-          const subjectName = document.getElementById('subjectName').value;
-          const responseElement = document.getElementById('addSubjectResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/subjects', 'POST', { subjectName });
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        // Classes
-        async function fetchClasses() {
-          const result = await apiCall('/api/classes');
-          if (result.success) {
-            updateDisplay('class', result.data);
-          }
-        }
-
-        async function addClass() {
-          const body = {
-            grade_level: document.getElementById('gradeLevel').value,
-            section: document.getElementById('section').value,
-            school_year: document.getElementById('schoolYear').value,
-            class_description: document.getElementById('classDescription').value
-          };
-          const result = await apiCall('/api/classes', 'POST', body);
-          document.getElementById('addClassResponse').innerHTML = 
-            '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        // Teachers
-        async function fetchTeachers() {
-          const result = await apiCall('/api/teachers');
-          if (result.success) {
-            updateDisplay('teacher', result.data);
-          }
-        }
-
-        async function addTeacher() {
-          const body = {
-            teacherId: document.getElementById('teacherId').value,
-            fname: document.getElementById('fname').value,
-            mname: document.getElementById('mname').value,
-            lname: document.getElementById('lname').value,
-            gender: document.getElementById('gender').value
-          };
-          const result = await apiCall('/api/teachers', 'POST', body);
-          document.getElementById('addTeacherResponse').innerHTML = 
-            '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        // Students
-        async function fetchStudents() {
-          const result = await apiCall('/api/students');
-          if (result.success) {
-            updateDisplay('student', result.data);
-          }
-        }
-
-        async function addStudent() {
-          const body = {
-            fname: document.getElementById('studentFname').value,
-            mname: document.getElementById('studentMname').value,
-            lname: document.getElementById('studentLname').value,
-            gender: document.getElementById('studentGender').value,
-            age: parseInt(document.getElementById('studentAge').value)
-          };
-          
-          const responseElement = document.getElementById('addStudentResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/students', 'POST', body);
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        // School Years
-        async function fetchSchoolYears() {
-          const responseElement = document.getElementById('schoolYearsResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/school-years');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        async function addSchoolYear() {
-          const body = {
-            school_year: document.getElementById('schoolYear').value,
-            is_active: false // Default to inactive when creating
-          };
-          
-          const responseElement = document.getElementById('addSchoolYearResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/school-years', 'POST', body);
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        // Confirmation dialog for adding records
-        async function confirmAdd(type, callback) {
-          if (confirm('Are you sure you want to add this ' + type + '?')) {
-            await callback();
-          }
-        }
-
-        // Confirmation dialog for deleting records
-        async function confirmDelete(type, id) {
-          if (confirm('Are you sure you want to delete this ' + type + '?')) {
-            try {
-              const response = await fetch('/api/' + type + 's/' + id, {
-                method: 'DELETE',
-              });
-              const result = await response.json();
-              alert(result.message);
-              // Refresh the list after deletion
-              window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
-            } catch (error) {
-              console.error('Error:', error);
-              alert('Failed to delete ' + type);
-            }
-          }
-        }
-
-        // Update the add functions to use confirmation
-        async function addSubject() {
-          confirmAdd('subject', async () => {
-            const subjectName = document.getElementById('subjectName').value;
-            const result = await apiCall('/api/subjects', 'POST', { subjectName });
-            document.getElementById('addSubjectResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchSubjects();
-          });
-        }
-
-        async function addClass() {
-          confirmAdd('class', async () => {
-            const body = {
-              grade_level: document.getElementById('gradeLevel').value,
-              section: document.getElementById('section').value,
-              school_year: document.getElementById('schoolYear').value,
-              class_description: document.getElementById('classDescription').value
-            };
-            const result = await apiCall('/api/classes', 'POST', body);
-            document.getElementById('addClassResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchClasses();
-          });
-        }
-
-        async function addTeacher() {
-          confirmAdd('teacher', async () => {
-            const body = {
-              teacherId: document.getElementById('teacherId').value,
-              fname: document.getElementById('fname').value,
-              mname: document.getElementById('mname').value,
-              lname: document.getElementById('lname').value,
-              gender: document.getElementById('gender').value
-            };
-            const result = await apiCall('/api/teachers', 'POST', body);
-            document.getElementById('addTeacherResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchTeachers();
-          });
-        }
-
-        async function addStudent() {
-          confirmAdd('student', async () => {
-            const body = {
-              fname: document.getElementById('studentFname').value,
-              mname: document.getElementById('studentMname').value,
-              lname: document.getElementById('studentLname').value,
-              gender: document.getElementById('studentGender').value,
-              age: parseInt(document.getElementById('studentAge').value)
-            };
-            const result = await apiCall('/api/students', 'POST', body);
-            document.getElementById('addStudentResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchStudents();
-          });
-        }
-
-        // Delete functionality
-        function showDeleteDialog(dialogId) {
-          document.getElementById('overlay').style.display = 'block';
-          document.getElementById(dialogId).style.display = 'block';
-        }
-
-        function closeDeleteDialog(dialogId) {
-          document.getElementById('overlay').style.display = 'none';
-          document.getElementById(dialogId).style.display = 'none';
-        }
-
-        function updateIdField(type) {
-          const select = document.getElementById(type + 'Select');
-          const idField = document.getElementById(type + 'Id');
-          idField.value = select.value;
-        }
-
-        async function deleteSubject() {
-          const subjects = await apiCall('/api/subjects');
-          const select = document.getElementById('subjectSelect');
-          select.innerHTML = '<option value="">Select a subject...</option>' +
-            subjects.data.map(subject => (
-              '<option value="' + subject.subject_id + '">' + 
-              subject.subject_name + ' (ID: ' + subject.subject_id + ')</option>'
-            )).join('');
-          showDeleteDialog('deleteSubjectDialog');
-        }
-
-        async function deleteClass() {
-          const classes = await apiCall('/api/classes');
-          const select = document.getElementById('classSelect');
-          select.innerHTML = '<option value="">Select a class...</option>' +
-            classes.data.map(cls => (
-              '<option value="' + cls.class_id + '">Grade ' + 
-              cls.grade_level + '-' + cls.section + ' (' + cls.school_year + 
-              ') (ID: ' + cls.class_id + ')</option>'
-            )).join('');
-          showDeleteDialog('deleteClassDialog');
-        }
-
-        async function deleteTeacher() {
-          const teachers = await apiCall('/api/teachers');
-          const select = document.getElementById('teacherSelect');
-          select.innerHTML = '<option value="">Select a teacher...</option>' +
-            teachers.data.map(teacher => (
-              '<option value="' + teacher.teacher_id + '">' + 
-              teacher.fname + ' ' + teacher.lname + ' (ID: ' + teacher.teacher_id + ')</option>'
-            )).join('');
-          showDeleteDialog('deleteTeacherDialog');
-        }
-
-        async function deleteStudent() {
-          const students = await apiCall('/api/students');
-          const select = document.getElementById('studentSelect');
-          select.innerHTML = '<option value="">Select a student...</option>' +
-            students.data.map(student => (
-              '<option value="' + student.student_id + '">' + 
-              student.fname + ' ' + student.lname + ' (ID: ' + student.student_id + ')</option>'
-            )).join('');
-          showDeleteDialog('deleteStudentDialog');
-        }
-
-        async function confirmDelete(type) {
-          const idField = document.getElementById(type + 'Id');
-          const select = document.getElementById(type + 'Select');
-          const id = idField.value || select.value;
-          
-          if (!id) {
-            alert('Please select an item or enter an ID to delete');
-            return;
-          }
-
-          if (confirm('Are you sure you want to delete ' + type + ' with ID: ' + id + '?')) {
-            try {
-              const response = await fetch('/api/' + type + 's/' + id, {
-                method: 'DELETE'
-              });
-              const result = await response.json();
-              
-              if (response.ok) {
-                alert(result.message || type + ' with ID ' + id + ' deleted successfully');
-                closeDeleteDialog('delete' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog');
-                // Refresh the list
-                window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
-              } else {
-                throw new Error(result.error || 'Failed to delete ' + type + ' with ID ' + id);
-              }
-            } catch (error) {
-              alert(error.message);
-            }
-          }
-        }
-      </script>
-      <!-- Add delete dialogs -->
-      <div id="overlay" class="overlay"></div>
       
-      <div id="deleteSubjectDialog" class="delete-dialog">
-        <h3>Delete Subject</h3>
-        <div class="delete-form">
-          <div class="form-group">
-            <label>Select Subject:</label>
-            <select id="subjectSelect" onchange="updateIdField('subject')"></select>
-          </div>
-          <div class="form-group">
-            <label>Or Enter Subject ID:</label>
-            <input type="text" id="subjectId" placeholder="Enter Subject ID">
+      <div class="sections-grid">
+        <div class="section">
+          <h2>Subjects</h2>
+          <div id="subjectList" class="list-container"></div>
+          <div class="action-buttons">
+            <button onclick="showAddDialog('subject')">Add Subject</button>
           </div>
         </div>
-        <div class="button-group">
-          <button onclick="closeDeleteDialog('deleteSubjectDialog')">Cancel</button>
-          <button class="delete-btn" onclick="confirmDelete('subject')">Delete</button>
+
+        <div class="section">
+          <h2>Classes</h2>
+          <div id="classList" class="list-container"></div>
+          <div class="action-buttons">
+            <button onclick="showAddDialog('class')">Add Class</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Teachers</h2>
+          <div id="teacherList" class="list-container"></div>
+          <div class="action-buttons">
+            <button onclick="showAddDialog('teacher')">Add Teacher</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Students</h2>
+          <div id="studentList" class="list-container"></div>
+          <div class="action-buttons">
+            <button onclick="showAddDialog('student')">Add Student</button>
+          </div>
         </div>
       </div>
-
-      <div id="deleteClassDialog" class="delete-dialog">
-        <h3>Delete Class</h3>
-        <div class="delete-form">
-          <div class="form-group">
-            <label>Select Class:</label>
-            <select id="classSelect" onchange="updateIdField('class')"></select>
-          </div>
-          <div class="form-group">
-            <label>Or Enter Class ID:</label>
-            <input type="text" id="classId" placeholder="Enter Class ID">
-          </div>
-        </div>
-        <div class="button-group">
-          <button onclick="closeDeleteDialog('deleteClassDialog')">Cancel</button>
-          <button class="delete-btn" onclick="confirmDelete('class')">Delete</button>
-        </div>
-      </div>
-
-      <div id="deleteTeacherDialog" class="delete-dialog">
-        <h3>Delete Teacher</h3>
-        <div class="delete-form">
-          <div class="form-group">
-            <label>Select Teacher:</label>
-            <select id="teacherSelect" onchange="updateIdField('teacher')"></select>
-          </div>
-          <div class="form-group">
-            <label>Or Enter Teacher ID:</label>
-            <input type="text" id="teacherId" placeholder="Enter Teacher ID">
-          </div>
-        </div>
-        <div class="button-group">
-          <button onclick="closeDeleteDialog('deleteTeacherDialog')">Cancel</button>
-          <button class="delete-btn" onclick="confirmDelete('teacher')">Delete</button>
-        </div>
-      </div>
-
-      <div id="deleteStudentDialog" class="delete-dialog">
-        <h3>Delete Student</h3>
-        <div class="delete-form">
-          <div class="form-group">
-            <label>Select Student:</label>
-            <select id="studentSelect" onchange="updateIdField('student')"></select>
-          </div>
-          <div class="form-group">
-            <label>Or Enter Student ID:</label>
-            <input type="text" id="studentId" placeholder="Enter Student ID">
-          </div>
-        </div>
-        <div class="button-group">
-          <button onclick="closeDeleteDialog('deleteStudentDialog')">Cancel</button>
-          <button class="delete-btn" onclick="confirmDelete('student')">Delete</button>
-        </div>
-      </div>
-
-      <!-- Add edit dialogs -->
-      <div id="editSubjectDialog" class="edit-dialog dialog">
-        <h3>Edit Subject</h3>
-        <div class="edit-form">
-          <div class="form-group">
-            <label>Subject Name:</label>
-            <input type="text" id="editSubjectName" placeholder="Enter Subject Name">
-            <input type="hidden" id="editSubjectId">
-          </div>
-        </div>
-        <div class="button-group">
-          <button class="cancel-btn" onclick="closeEditDialog('editSubjectDialog')">Cancel</button>
-          <button class="edit-btn" onclick="confirmEdit('subject')">Update</button>
-        </div>
-      </div>
-
-      <div id="editClassDialog" class="edit-dialog dialog">
-        <h3>Edit Class</h3>
-        <div class="edit-form">
-          <div class="form-group">
-            <label>Grade Level:</label>
-            <input type="text" id="editGradeLevel" placeholder="Enter Grade Level">
-          </div>
-          <div class="form-group">
-            <label>Section:</label>
-            <input type="text" id="editSection" placeholder="Enter Section">
-          </div>
-          <div class="form-group">
-            <label>School Year:</label>
-            <input type="text" id="editSchoolYear" placeholder="Enter School Year">
-          </div>
-          <div class="form-group">
-            <label>Description:</label>
-            <input type="text" id="editClassDescription" placeholder="Enter Description">
-            <input type="hidden" id="editClassId">
-          </div>
-        </div>
-        <div class="button-group">
-          <button class="cancel-btn" onclick="closeEditDialog('editClassDialog')">Cancel</button>
-          <button class="edit-btn" onclick="confirmEdit('class')">Update</button>
-        </div>
-      </div>
-
-      <div id="editTeacherDialog" class="edit-dialog dialog">
-        <h3>Edit Teacher</h3>
-        <div class="edit-form">
-          <div class="form-group">
-            <label>First Name:</label>
-            <input type="text" id="editTeacherFname" placeholder="Enter First Name">
-          </div>
-          <div class="form-group">
-            <label>Middle Name:</label>
-            <input type="text" id="editTeacherMname" placeholder="Enter Middle Name">
-          </div>
-          <div class="form-group">
-            <label>Last Name:</label>
-            <input type="text" id="editTeacherLname" placeholder="Enter Last Name">
-          </div>
-          <div class="form-group">
-            <label>Gender:</label>
-            <select id="editTeacherGender">
-              <option value="M">Male</option>
-              <option value="F">Female</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Status:</label>
-            <select id="editTeacherStatus">
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
-            <input type="hidden" id="editTeacherId">
-          </div>
-        </div>
-        <div class="button-group">
-          <button class="cancel-btn" onclick="closeEditDialog('editTeacherDialog')">Cancel</button>
-          <button class="edit-btn" onclick="confirmEdit('teacher')">Update</button>
-        </div>
-      </div>
-
-      <div id="editStudentDialog" class="edit-dialog dialog">
-        <h3>Edit Student</h3>
-        <div class="edit-form">
-          <div class="form-group">
-            <label>First Name:</label>
-            <input type="text" id="editStudentFname" placeholder="Enter First Name">
-          </div>
-          <div class="form-group">
-            <label>Middle Name:</label>
-            <input type="text" id="editStudentMname" placeholder="Enter Middle Name">
-          </div>
-          <div class="form-group">
-            <label>Last Name:</label>
-            <input type="text" id="editStudentLname" placeholder="Enter Last Name">
-          </div>
-          <div class="form-group">
-            <label>Gender:</label>
-            <select id="editStudentGender">
-              <option value="M">Male</option>
-              <option value="F">Female</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Age:</label>
-            <input type="number" id="editStudentAge" placeholder="Enter Age">
-            <input type="hidden" id="editStudentId">
-          </div>
-        </div>
-        <div class="button-group">
-          <button class="cancel-btn" onclick="closeEditDialog('editStudentDialog')">Cancel</button>
-          <button class="edit-btn" onclick="confirmEdit('student')">Update</button>
-        </div>
-      </div>
-
-      <style>
-        /* Add these styles to your existing styles */
-        .edit-dialog {
-          min-width: 400px;
-        }
-        
-        .edit-btn {
-          background: #f39c12;
-          color: white;
-        }
-        
-        .edit-btn:hover {
-          background: #d68910;
-        }
-        
-        .dialog {
-          display: none;
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: white;
-          padding: 25px;
-          border-radius: 12px;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-          z-index: 1000;
-        }
-        
-        .edit-form {
-          margin: 20px 0;
-        }
-        
-        .edit-form .form-group {
-          margin: 15px 0;
-        }
-        
-        .edit-form label {
-          display: block;
-          margin-bottom: 8px;
-          font-weight: 600;
-          color: #2c3e50;
-        }
-      </style>
 
       <script>
-        // Add these functions to your existing JavaScript
-        function showEditDialog(dialogId) {
-          document.getElementById('overlay').style.display = 'block';
-          document.getElementById(dialogId).style.display = 'block';
-        }
+        // ... existing script ...
 
-        function closeEditDialog(dialogId) {
-          document.getElementById('overlay').style.display = 'none';
-          document.getElementById(dialogId).style.display = 'none';
-        }
-
-        async function editSubject(id) {
-          const subjects = await apiCall('/api/subjects');
-          const subject = subjects.data.find(s => s.subject_id === id);
-          if (subject) {
-            document.getElementById('editSubjectId').value = subject.subject_id;
-            document.getElementById('editSubjectName').value = subject.subject_name;
-            showEditDialog('editSubjectDialog');
-          }
-        }
-
-        async function editClass(id) {
-          const classes = await apiCall('/api/classes');
-          const cls = classes.data.find(c => c.class_id === id);
-          if (cls) {
-            document.getElementById('editClassId').value = cls.class_id;
-            document.getElementById('editGradeLevel').value = cls.grade_level;
-            document.getElementById('editSection').value = cls.section;
-            document.getElementById('editSchoolYear').value = cls.school_year;
-            document.getElementById('editClassDescription').value = cls.class_description;
-            showEditDialog('editClassDialog');
-          }
-        }
-
-        async function editTeacher(id) {
-          const teachers = await apiCall('/api/teachers');
-          const teacher = teachers.data.find(t => t.teacher_id === id);
-          if (teacher) {
-            document.getElementById('editTeacherId').value = teacher.teacher_id;
-            document.getElementById('editTeacherFname').value = teacher.fname;
-            document.getElementById('editTeacherMname').value = teacher.mname;
-            document.getElementById('editTeacherLname').value = teacher.lname;
-            document.getElementById('editTeacherGender').value = teacher.gender;
-            document.getElementById('editTeacherStatus').value = teacher.status;
-            showEditDialog('editTeacherDialog');
-          }
-        }
-
-        async function editStudent(id) {
-          const students = await apiCall('/api/students');
-          const student = students.data.find(s => s.student_id === id);
-          if (student) {
-            document.getElementById('editStudentId').value = student.student_id;
-            document.getElementById('editStudentFname').value = student.fname;
-            document.getElementById('editStudentMname').value = student.mname;
-            document.getElementById('editStudentLname').value = student.lname;
-            document.getElementById('editStudentGender').value = student.gender;
-            document.getElementById('editStudentAge').value = student.age;
-            showEditDialog('editStudentDialog');
-          }
-        }
-
-        async function confirmEdit(type) {
-          const id = document.getElementById('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Id').value;
-          let data = {};
-          
-          switch(type) {
-            case 'subject':
-              data = {
-                subject_name: document.getElementById('editSubjectName').value
-              };
-              break;
-            case 'class':
-              data = {
-                grade_level: document.getElementById('editGradeLevel').value,
-                section: document.getElementById('editSection').value,
-                school_year: document.getElementById('editSchoolYear').value,
-                class_description: document.getElementById('editClassDescription').value
-              };
-              break;
-            case 'teacher':
-              data = {
-                fname: document.getElementById('editTeacherFname').value,
-                mname: document.getElementById('editTeacherMname').value,
-                lname: document.getElementById('editTeacherLname').value,
-                gender: document.getElementById('editTeacherGender').value,
-                status: document.getElementById('editTeacherStatus').value
-              };
-              break;
-            case 'student':
-              data = {
-                fname: document.getElementById('editStudentFname').value,
-                mname: document.getElementById('editStudentMname').value,
-                lname: document.getElementById('editStudentLname').value,
-                gender: document.getElementById('editStudentGender').value,
-                age: parseInt(document.getElementById('editStudentAge').value)
-              };
-              break;
-          }
-
-          try {
-            const response = await fetch('/api/' + type + 's/' + id, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-            
-            if (response.ok) {
-              alert(type.charAt(0).toUpperCase() + type.slice(1) + ' updated successfully');
-              closeEditDialog('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog');
-              // Refresh the list
-              window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
-            } else {
-              throw new Error(result.error || 'Failed to update ' + type);
-            }
-          } catch (error) {
-            alert(error.message);
-          }
-        }
-
-        // Update the display functions to include edit buttons
         function displayItems(items, type) {
           return items.map(item => {
             let displayText = '';
@@ -2263,69 +1519,180 @@ app.get('/', (req, res) => {
                 break;
             }
 
-            const editBtnText = 'edit' + type.charAt(0).toUpperCase() + type.slice(1);
-            const deleteBtnText = 'delete' + type.charAt(0).toUpperCase() + type.slice(1);
-            const itemId = item[type + '_id'];
-
             return [
               '<div class="item">',
-              '  <span>' + displayText + '</span>',
+              '  <div class="item-content">',
+              '    <span>' + displayText + '</span>',
+              '  </div>',
               '  <div class="button-group">',
-              '    <button class="edit-btn" onclick="' + editBtnText + '(\'' + itemId + '\')">Edit</button>',
-              '    <button class="delete-btn" onclick="' + deleteBtnText + '(\'' + itemId + '\')">Delete</button>',
+              '    <button class="update-btn" onclick="showUpdateForm(\'' + type + '\', \'' + item[type + '_id'] + '\')">Update</button>',
+              '    <button class="delete-btn" onclick="confirmDelete(\'' + type + '\', \'' + item[type + '_id'] + '\')">Delete</button>',
               '  </div>',
               '</div>'
-            ].join('\n');
+            ].join('\\n');
           }).join('');
         }
 
-        // Add these functions to handle the edit and delete operations
-        function updateDisplay(type, items) {
-          const container = document.getElementById(type + 'List');
-          if (container) {
-            container.innerHTML = displayItems(items, type);
+        function showUpdateForm(type, id) {
+          let formHtml = '';
+          switch(type) {
+            case 'subject':
+              formHtml = createSubjectForm(id);
+              break;
+            case 'class':
+              formHtml = createClassForm(id);
+              break;
+            case 'teacher':
+              formHtml = createTeacherForm(id);
+              break;
+            case 'student':
+              formHtml = createStudentForm(id);
+              break;
+          }
+          
+          const dialog = document.createElement('div');
+          dialog.className = 'dialog';
+          dialog.innerHTML = formHtml;
+          document.body.appendChild(dialog);
+        }
+
+        function createSubjectForm(id) {
+          return \`
+            <div class="update-form">
+              <h3>Update Subject</h3>
+              <input type="text" id="updateSubjectName" placeholder="Subject Name">
+              <div class="button-group">
+                <button onclick="updateItem('subject', '\${id}')">Save</button>
+                <button onclick="closeUpdateForm()">Cancel</button>
+              </div>
+            </div>
+          \`;
+        }
+
+        function createClassForm(id) {
+          return \`
+            <div class="update-form">
+              <h3>Update Class</h3>
+              <input type="text" id="updateGradeLevel" placeholder="Grade Level">
+              <input type="text" id="updateSection" placeholder="Section">
+              <input type="text" id="updateSchoolYear" placeholder="School Year">
+              <input type="text" id="updateClassDescription" placeholder="Description">
+              <div class="button-group">
+                <button onclick="updateItem('class', '\${id}')">Save</button>
+                <button onclick="closeUpdateForm()">Cancel</button>
+              </div>
+            </div>
+          \`;
+        }
+
+        function createTeacherForm(id) {
+          return \`
+            <div class="update-form">
+              <h3>Update Teacher</h3>
+              <input type="text" id="updateTeacherFname" placeholder="First Name">
+              <input type="text" id="updateTeacherMname" placeholder="Middle Name">
+              <input type="text" id="updateTeacherLname" placeholder="Last Name">
+              <select id="updateTeacherGender">
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+              </select>
+              <select id="updateTeacherStatus">
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+              <div class="button-group">
+                <button onclick="updateItem('teacher', '\${id}')">Save</button>
+                <button onclick="closeUpdateForm()">Cancel</button>
+              </div>
+            </div>
+          \`;
+        }
+
+        function createStudentForm(id) {
+          return \`
+            <div class="update-form">
+              <h3>Update Student</h3>
+              <input type="text" id="updateStudentFname" placeholder="First Name">
+              <input type="text" id="updateStudentMname" placeholder="Middle Name">
+              <input type="text" id="updateStudentLname" placeholder="Last Name">
+              <select id="updateStudentGender">
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+              </select>
+              <input type="number" id="updateStudentAge" placeholder="Age">
+              <div class="button-group">
+                <button onclick="updateItem('student', '\${id}')">Save</button>
+                <button onclick="closeUpdateForm()">Cancel</button>
+              </div>
+            </div>
+          \`;
+        }
+
+        async function updateItem(type, id) {
+          const data = {};
+          switch(type) {
+            case 'subject':
+              data.subject_name = document.getElementById('updateSubjectName').value;
+              break;
+            case 'class':
+              data.grade_level = document.getElementById('updateGradeLevel').value;
+              data.section = document.getElementById('updateSection').value;
+              data.school_year = document.getElementById('updateSchoolYear').value;
+              data.class_description = document.getElementById('updateClassDescription').value;
+              break;
+            case 'teacher':
+              data.fname = document.getElementById('updateTeacherFname').value;
+              data.mname = document.getElementById('updateTeacherMname').value;
+              data.lname = document.getElementById('updateTeacherLname').value;
+              data.gender = document.getElementById('updateTeacherGender').value;
+              data.status = document.getElementById('updateTeacherStatus').value;
+              break;
+            case 'student':
+              data.fname = document.getElementById('updateStudentFname').value;
+              data.mname = document.getElementById('updateStudentMname').value;
+              data.lname = document.getElementById('updateStudentLname').value;
+              data.gender = document.getElementById('updateStudentGender').value;
+              data.age = parseInt(document.getElementById('updateStudentAge').value);
+              break;
+          }
+
+          try {
+            const response = await fetch('/api/' + type + 's/' + id, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+              alert(type.charAt(0).toUpperCase() + type.slice(1) + ' updated successfully');
+              closeUpdateForm();
+              // Refresh the list
+              window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
+            } else {
+              const error = await response.json();
+              throw new Error(error.error || 'Failed to update ' + type);
+            }
+          } catch (error) {
+            alert(error.message);
           }
         }
 
-        // Update the fetch functions to use the new display method
-        async function fetchSubjects() {
-          const result = await apiCall('/api/subjects');
-          if (result.success) {
-            updateDisplay('subject', result.data);
+        function closeUpdateForm() {
+          const dialog = document.querySelector('.dialog');
+          if (dialog) {
+            dialog.remove();
           }
         }
 
-        async function fetchClasses() {
-          const result = await apiCall('/api/classes');
-          if (result.success) {
-            updateDisplay('class', result.data);
-          }
-        }
-
-        async function fetchTeachers() {
-          const result = await apiCall('/api/teachers');
-          if (result.success) {
-            updateDisplay('teacher', result.data);
-          }
-        }
-
-        async function fetchStudents() {
-          const result = await apiCall('/api/students');
-          if (result.success) {
-            updateDisplay('student', result.data);
-          }
-        }
-
-        // Add error handling utility
-        function handleError(error, action) {
-          console.error(action + ' error:', error);
-          alert(error.message || 'An error occurred while ' + action);
-        }
-
-        // Add success message utility
-        function showSuccess(message) {
-          alert(message);
-        }
+        // Initialize the lists when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+          fetchSubjects();
+          fetchClasses();
+          fetchTeachers();
+          fetchStudents();
+        });
       </script>
     </body>
     </html>
