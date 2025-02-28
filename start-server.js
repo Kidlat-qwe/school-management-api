@@ -682,15 +682,15 @@ app.get('/api/academic-rankings/check-quarters', async (req, res) => {
   }
 });
 
-// PUT endpoint to update a subject
-app.put('/api/subjects/:id', async (req, res) => {
+// PATCH endpoint to update a subject
+app.patch('/api/subjects/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { subjectName } = req.body;
+    const { subject_name } = req.body;  // Changed from subjectName to subject_name
     
     const result = await pool.query(
       'UPDATE subject SET subject_name = $1 WHERE subject_id = $2 RETURNING *',
-      [subjectName, id]
+      [subject_name, id]
     );
 
     if (result.rows.length === 0) {
@@ -1128,6 +1128,234 @@ app.delete('/api/students/:id', async (req, res) => {
   }
 });
 
+// PATCH endpoint to update a subject
+app.patch('/api/subjects/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject_name } = req.body;  // Changed from subjectName to subject_name
+    
+    const result = await pool.query(
+      'UPDATE subject SET subject_name = $1 WHERE subject_id = $2 RETURNING *',
+      [subject_name, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Subject not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating subject:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PATCH endpoint to update a class
+app.patch('/api/classes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { grade_level, section, school_year, class_description } = req.body;
+    
+    const result = await pool.query(
+      'UPDATE class SET grade_level = $1, section = $2, school_year = $3, class_description = $4 WHERE class_id = $5 RETURNING *',
+      [grade_level, section, school_year, class_description, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating class:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PATCH endpoint to update a teacher
+app.patch('/api/teachers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fname, mname, lname, gender } = req.body;
+    
+    const result = await pool.query(
+      'UPDATE teacher SET fname = $1, mname = $2, lname = $3, gender = $4 WHERE teacher_id = $5 RETURNING *',
+      [fname, mname, lname, gender, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating teacher:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PATCH endpoint to update a student
+app.patch('/api/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fname, mname, lname, gender, age } = req.body;
+    
+    const result = await pool.query(
+      'UPDATE student SET fname = $1, mname = $2, lname = $3, gender = $4, age = $5 WHERE student_id = $6 RETURNING *',
+      [fname, mname, lname, gender, age, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating student:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PATCH endpoint to update a school year
+app.patch('/api/school-years/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { school_year, is_active } = req.body;
+    
+    const result = await pool.query(
+      'UPDATE school_year SET school_year = $1, is_active = $2 WHERE school_year_id = $3 RETURNING *',
+      [school_year, is_active, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'School year not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating school year:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add GET endpoint for single subject
+app.get('/api/subjects/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM subject WHERE subject_id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Subject not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching subject:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add GET endpoint for single class
+app.get('/api/classes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM class WHERE class_id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching class:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add GET endpoint for single teacher
+app.get('/api/teachers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM teacher WHERE teacher_id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching teacher:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add GET endpoint for single student
+app.get('/api/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM student WHERE student_id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching student:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// First add the DELETE endpoint for school year
+app.delete('/api/school-years/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'DELETE FROM school_year WHERE school_year_id = $1 RETURNING *',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'School year not found' });
+    }
+    res.json({ message: 'School year deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting school year:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add GET endpoint for single school year
+app.get('/api/school-years/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM school_year WHERE school_year_id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'School year not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching school year:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 //THE API ENDPOINTS FRONTEND
 app.get('/', (req, res) => {
   res.send(`
@@ -1332,6 +1560,58 @@ app.get('/', (req, res) => {
           border-radius: 4px;
           margin-top: 5px;
         }
+        
+        /* Add styles for edit dialog */
+        .edit-dialog {
+          display: none;
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          z-index: 1000;
+          min-width: 300px;
+        }
+        
+        .edit-btn {
+          background: #3498db;
+          color: white;
+          border: none;
+          padding: 4px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+          margin: 0 5px;
+        }
+        
+        .edit-btn:hover {
+          background: #2980b9;
+        }
+        
+        .edit-form {
+          margin: 15px 0;
+        }
+        
+        .edit-form .form-group {
+          margin: 10px 0;
+        }
+        
+        .edit-form label {
+          display: block;
+          margin-bottom: 5px;
+          font-weight: bold;
+        }
+        
+        .edit-form input,
+        .edit-form select {
+          width: 100%;
+          padding: 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          margin-top: 5px;
+        }
       </style>
     </head>
     <body>
@@ -1353,12 +1633,10 @@ app.get('/', (req, res) => {
           <span class="path">/api/subjects</span>
           <div class="form-group">
             <input type="text" id="subjectName" placeholder="Subject Name">
-            <div class="button-group">
-              <button onclick="addSubject()">Add Subject</button>
-              <button class="delete-btn" onclick="deleteSubject()">Delete Subject</button>
-            </div>
+            <button onclick="addSubject()" class="btn">Add Subject</button>
+            <button onclick="showEditDialog('subject')" class="edit-btn">Edit Subject</button>
+            <button onclick="deleteSubject()" class="delete-btn">Delete Subject</button>
           </div>
-          <div id="addSubjectResponse" class="response"></div>
         </div>
       </div>
 
@@ -1381,12 +1659,10 @@ app.get('/', (req, res) => {
             <input type="text" id="section" placeholder="Section">
             <input type="text" id="schoolYear" placeholder="School Year">
             <input type="text" id="classDescription" placeholder="Description">
-            <div class="button-group">
-              <button onclick="addClass()">Add Class</button>
-              <button class="delete-btn" onclick="deleteClass()">Delete Class</button>
-            </div>
+            <button onclick="addClass()" class="btn">Add Class</button>
+            <button onclick="showEditDialog('class')" class="edit-btn">Edit Class</button>
+            <button onclick="deleteClass()" class="delete-btn">Delete Class</button>
           </div>
-          <div id="addClassResponse" class="response"></div>
         </div>
       </div>
 
@@ -1410,12 +1686,10 @@ app.get('/', (req, res) => {
             <input type="text" id="mname" placeholder="Middle Name">
             <input type="text" id="lname" placeholder="Last Name">
             <input type="text" id="gender" placeholder="Gender">
-            <div class="button-group">
-              <button onclick="addTeacher()">Add Teacher</button>
-              <button class="delete-btn" onclick="deleteTeacher()">Delete Teacher</button>
-            </div>
+            <button onclick="addTeacher()" class="btn">Add Teacher</button>
+            <button onclick="showEditDialog('teacher')" class="edit-btn">Edit Teacher</button>
+            <button onclick="deleteTeacher()" class="delete-btn">Delete Teacher</button>
           </div>
-          <div id="addTeacherResponse" class="response"></div>
         </div>
       </div>
 
@@ -1434,17 +1708,14 @@ app.get('/', (req, res) => {
           <span class="method">POST</span>
           <span class="path">/api/students</span>
           <div class="form-group">
-            <div class="form-row">
-              <input type="text" id="studentFname" placeholder="First Name">
-              <input type="text" id="studentMname" placeholder="Middle Name">
-              <input type="text" id="studentLname" placeholder="Last Name">
-            </div>
-            <div class="form-row">
-              <input type="text" id="studentGender" placeholder="Gender">
-              <input type="number" id="studentAge" placeholder="Age">
-            </div>
+            <input type="text" id="studentFname" placeholder="First Name">
+            <input type="text" id="studentMname" placeholder="Middle Name">
+            <input type="text" id="studentLname" placeholder="Last Name">
+            <input type="text" id="studentGender" placeholder="Gender">
+            <input type="number" id="studentAge" placeholder="Age">
             <div class="button-group">
               <button onclick="addStudent()">Add Student</button>
+              <button class="edit-btn" onclick="showEditDialog('student')">Edit Student</button>
               <button class="delete-btn" onclick="deleteStudent()">Delete Student</button>
             </div>
           </div>
@@ -1468,8 +1739,10 @@ app.get('/', (req, res) => {
           <span class="path">/api/school-years</span>
           <div class="form-group">
             <input type="text" id="schoolYear" placeholder="School Year (e.g., 2023-2024)">
-            <div class="form-row">
+            <div class="button-group">
               <button onclick="addSchoolYear()">Add School Year</button>
+              <button class="edit-btn" onclick="showEditDialog('schoolYear')">Edit School Year</button>
+              <button class="delete-btn" onclick="deleteSchoolYear()">Delete School Year</button>
             </div>
           </div>
           <div id="addSchoolYearResponse" class="response"></div>
@@ -1481,6 +1754,51 @@ app.get('/', (req, res) => {
         <div class="endpoint post">
           <span class="method">POST</span>
           <span class="path">/auth/login</span>
+        </div>
+      </div>
+
+      <!-- Add edit dialog for School Year -->
+      <div id="editSchoolYearDialog" class="edit-dialog">
+        <h3>Edit School Year</h3>
+        <div class="edit-form">
+          <div class="form-group">
+            <label>Select School Year:</label>
+            <select id="editSchoolYearSelect" onchange="loadSchoolYearData()"></select>
+          </div>
+          <div class="form-group">
+            <label>School Year:</label>
+            <input type="text" id="editSchoolYearInput">
+          </div>
+          <div class="form-group">
+            <label>Status:</label>
+            <select id="editSchoolYearStatus">
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeEditDialog('editSchoolYearDialog')">Cancel</button>
+          <button class="edit-btn" onclick="confirmEdit('schoolYear')">Save Changes</button>
+        </div>
+      </div>
+
+      <!-- Add delete dialog for School Year -->
+      <div id="deleteSchoolYearDialog" class="delete-dialog">
+        <h3>Delete School Year</h3>
+        <div class="delete-form">
+          <div class="form-group">
+            <label>Select School Year:</label>
+            <select id="schoolYearSelect" onchange="updateIdField('schoolYear')"></select>
+          </div>
+          <div class="form-group">
+            <label>Or Enter School Year ID:</label>
+            <input type="text" id="schoolYearId" placeholder="Enter School Year ID">
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeDeleteDialog('deleteSchoolYearDialog')">Cancel</button>
+          <button class="delete-btn" onclick="confirmDelete('schoolYear')">Delete</button>
         </div>
       </div>
 
@@ -1787,6 +2105,247 @@ app.get('/', (req, res) => {
             }
           }
         }
+
+        // Add edit button to each section's button group
+        document.querySelectorAll('.button-group').forEach(group => {
+          const deleteBtn = group.querySelector('.delete-btn');
+          if (deleteBtn) {
+            const type = deleteBtn.getAttribute('onclick').match(/delete(\w+)\(\)/)[1].toLowerCase();
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-btn';
+            editBtn.textContent = 'Edit';
+            editBtn.onclick = () => showEditDialog(type);
+            group.insertBefore(editBtn, deleteBtn);
+          }
+        });
+
+        // Edit functionality
+        function showEditDialog(type) {
+          document.getElementById('overlay').style.display = 'block';
+          document.getElementById('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog').style.display = 'block';
+          loadEditData(type);
+        }
+
+        function closeEditDialog(dialogId) {
+          document.getElementById('overlay').style.display = 'none';
+          document.getElementById(dialogId).style.display = 'none';
+        }
+
+        async function loadEditData(type) {
+          const data = await apiCall('/api/' + type + 's');
+          const select = document.getElementById('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Select');
+          
+          select.innerHTML = '<option value="">Select a ' + type + '...</option>';
+          
+          switch(type) {
+            case 'subject':
+              data.data.forEach(item => {
+                select.innerHTML += '<option value="' + item.subject_id + '">' + item.subject_name + '</option>';
+              });
+              break;
+            case 'class':
+              data.data.forEach(item => {
+                select.innerHTML += '<option value="' + item.class_id + '">Grade ' + item.grade_level + '-' + item.section + ' (' + item.school_year + ')</option>';
+              });
+              break;
+            case 'teacher':
+              data.data.forEach(item => {
+                select.innerHTML += '<option value="' + item.teacher_id + '">' + item.fname + ' ' + item.lname + '</option>';
+              });
+              break;
+            case 'student':
+              data.data.forEach(item => {
+                select.innerHTML += '<option value="' + item.student_id + '">' + item.fname + ' ' + item.lname + '</option>';
+              });
+              break;
+          }
+        }
+
+        async function loadSubjectData() {
+          try {
+            const select = document.getElementById('editSubjectSelect');
+            if (!select.value) return;
+            
+            const response = await fetch('/api/subjects/' + select.value);
+            if (!response.ok) {
+              throw new Error('Failed to load subject data');
+            }
+            
+            const data = await response.json();
+            if (!data) {
+              throw new Error('No data received');
+            }
+            
+            document.getElementById('editSubjectName').value = data.subject_name || '';
+          } catch (error) {
+            console.error('Error loading subject:', error);
+            // Don't show alert, just log to console
+          }
+        }
+
+        async function loadClassData() {
+          try {
+            const select = document.getElementById('editClassSelect');
+            if (!select.value) return;
+            
+            const response = await fetch('/api/classes/' + select.value);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            if (!data) return;
+            
+            document.getElementById('editGradeLevel').value = data.grade_level || '';
+            document.getElementById('editSection').value = data.section || '';
+            document.getElementById('editClassSchoolYear').value = data.school_year || '';
+            document.getElementById('editClassDescription').value = data.class_description || '';
+          } catch (error) {
+            console.error('Error loading class:', error);
+          }
+        }
+
+        async function loadTeacherData() {
+          try {
+            const select = document.getElementById('editTeacherSelect');
+            if (!select.value) return;
+            
+            const response = await fetch('/api/teachers/' + select.value);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            if (!data) return;
+            
+            document.getElementById('editTeacherFname').value = data.fname || '';
+            document.getElementById('editTeacherMname').value = data.mname || '';
+            document.getElementById('editTeacherLname').value = data.lname || '';
+            document.getElementById('editTeacherGender').value = data.gender || '';
+          } catch (error) {
+            console.error('Error loading teacher:', error);
+          }
+        }
+
+        async function loadStudentData() {
+          try {
+            const select = document.getElementById('editStudentSelect');
+            if (!select.value) return;
+            
+            const response = await fetch('/api/students/' + select.value);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            if (!data) return;
+            
+            document.getElementById('editStudentFname').value = data.fname || '';
+            document.getElementById('editStudentMname').value = data.mname || '';
+            document.getElementById('editStudentLname').value = data.lname || '';
+            document.getElementById('editStudentGender').value = data.gender || '';
+            document.getElementById('editStudentAge').value = data.age || '';
+          } catch (error) {
+            console.error('Error loading student:', error);
+          }
+        }
+
+        async function confirmEdit(type) {
+          const select = document.getElementById('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Select');
+          if (!select.value) {
+            alert('Please select an item to edit');
+            return;
+          }
+
+          let data = {};
+          switch(type) {
+            case 'subject':
+              data = {
+                subject_name: document.getElementById('editSubjectName').value  // Changed from subjectName
+              };
+              break;
+            case 'class':
+              data = {
+                grade_level: document.getElementById('editGradeLevel').value,
+                section: document.getElementById('editSection').value,
+                school_year: document.getElementById('editClassSchoolYear').value,
+                class_description: document.getElementById('editClassDescription').value
+              };
+              break;
+            case 'teacher':
+              data = {
+                fname: document.getElementById('editTeacherFname').value,
+                mname: document.getElementById('editTeacherMname').value,
+                lname: document.getElementById('editTeacherLname').value,
+                gender: document.getElementById('editTeacherGender').value
+              };
+              break;
+            case 'student':
+              data = {
+                fname: document.getElementById('editStudentFname').value,
+                mname: document.getElementById('editStudentMname').value,
+                lname: document.getElementById('editStudentLname').value,
+                gender: document.getElementById('editStudentGender').value,
+                age: parseInt(document.getElementById('editStudentAge').value)
+              };
+              break;
+            case 'schoolYear':
+              data = {
+                school_year: document.getElementById('editSchoolYearInput').value,
+                is_active: document.getElementById('editSchoolYearStatus').value === 'true'
+              };
+              break;
+          }
+
+          try {
+            const response = await fetch('/api/' + type + 's/' + select.value, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Failed to update ' + type);
+            }
+
+            const result = await response.json();
+            alert(type.charAt(0).toUpperCase() + type.slice(1) + ' updated successfully');
+            closeEditDialog('edit' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog');
+            // Refresh the list
+            window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
+          } catch (error) {
+            console.error('Update error:', error);
+            alert(error.message);
+          }
+        }
+
+        // Add loadSchoolYearData function
+        async function loadSchoolYearData() {
+          try {
+            const select = document.getElementById('editSchoolYearSelect');
+            if (!select.value) return;
+            
+            const response = await fetch('/api/school-years/' + select.value);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            if (!data) return;
+            
+            document.getElementById('editSchoolYearInput').value = data.school_year || '';
+            document.getElementById('editSchoolYearStatus').value = data.is_active.toString();
+          } catch (error) {
+            console.error('Error loading school year:', error);
+          }
+        }
+
+        // Add deleteSchoolYear function
+        async function deleteSchoolYear() {
+          const schoolYears = await apiCall('/api/school-years');
+          const select = document.getElementById('schoolYearSelect');
+          select.innerHTML = '<option value="">Select a school year...</option>' +
+            schoolYears.data.map(year => (
+              '<option value="' + year.school_year_id + '">' + 
+              year.school_year + ' (' + (year.is_active ? 'Active' : 'Inactive') + ')</option>'
+            )).join('');
+          showDeleteDialog('deleteSchoolYearDialog');
+        }
       </script>
       <!-- Add delete dialogs -->
       <div id="overlay" class="overlay"></div>
@@ -1860,6 +2419,119 @@ app.get('/', (req, res) => {
         <div class="button-group">
           <button onclick="closeDeleteDialog('deleteStudentDialog')">Cancel</button>
           <button class="delete-btn" onclick="confirmDelete('student')">Delete</button>
+        </div>
+      </div>
+
+      <!-- Add edit dialogs -->
+      <div id="editSubjectDialog" class="edit-dialog">
+        <h3>Edit Subject</h3>
+        <div class="edit-form">
+          <div class="form-group">
+            <label>Select Subject:</label>
+            <select id="editSubjectSelect" onchange="loadSubjectData()"></select>
+          </div>
+          <div class="form-group">
+            <label>Subject Name:</label>
+            <input type="text" id="editSubjectName">
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeEditDialog('editSubjectDialog')">Cancel</button>
+          <button class="edit-btn" onclick="confirmEdit('subject')">Save Changes</button>
+        </div>
+      </div>
+
+      <div id="editClassDialog" class="edit-dialog">
+        <h3>Edit Class</h3>
+        <div class="edit-form">
+          <div class="form-group">
+            <label>Select Class:</label>
+            <select id="editClassSelect" onchange="loadClassData()"></select>
+          </div>
+          <div class="form-group">
+            <label>Grade Level:</label>
+            <input type="text" id="editGradeLevel">
+          </div>
+          <div class="form-group">
+            <label>Section:</label>
+            <input type="text" id="editSection">
+          </div>
+          <div class="form-group">
+            <label>School Year:</label>
+            <input type="text" id="editClassSchoolYear">
+          </div>
+          <div class="form-group">
+            <label>Description:</label>
+            <input type="text" id="editClassDescription">
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeEditDialog('editClassDialog')">Cancel</button>
+          <button class="edit-btn" onclick="confirmEdit('class')">Save Changes</button>
+        </div>
+      </div>
+
+      <div id="editTeacherDialog" class="edit-dialog">
+        <h3>Edit Teacher</h3>
+        <div class="edit-form">
+          <div class="form-group">
+            <label>Select Teacher:</label>
+            <select id="editTeacherSelect" onchange="loadTeacherData()"></select>
+          </div>
+          <div class="form-group">
+            <label>First Name:</label>
+            <input type="text" id="editTeacherFname">
+          </div>
+          <div class="form-group">
+            <label>Middle Name:</label>
+            <input type="text" id="editTeacherMname">
+          </div>
+          <div class="form-group">
+            <label>Last Name:</label>
+            <input type="text" id="editTeacherLname">
+          </div>
+          <div class="form-group">
+            <label>Gender:</label>
+            <input type="text" id="editTeacherGender">
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeEditDialog('editTeacherDialog')">Cancel</button>
+          <button class="edit-btn" onclick="confirmEdit('teacher')">Save Changes</button>
+        </div>
+      </div>
+
+      <div id="editStudentDialog" class="edit-dialog">
+        <h3>Edit Student</h3>
+        <div class="edit-form">
+          <div class="form-group">
+            <label>Select Student:</label>
+            <select id="editStudentSelect" onchange="loadStudentData()"></select>
+          </div>
+          <div class="form-group">
+            <label>First Name:</label>
+            <input type="text" id="editStudentFname">
+          </div>
+          <div class="form-group">
+            <label>Middle Name:</label>
+            <input type="text" id="editStudentMname">
+          </div>
+          <div class="form-group">
+            <label>Last Name:</label>
+            <input type="text" id="editStudentLname">
+          </div>
+          <div class="form-group">
+            <label>Gender:</label>
+            <input type="text" id="editStudentGender">
+          </div>
+          <div class="form-group">
+            <label>Age:</label>
+            <input type="number" id="editStudentAge">
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeEditDialog('editStudentDialog')">Cancel</button>
+          <button class="edit-btn" onclick="confirmEdit('student')">Save Changes</button>
         </div>
       </div>
     </body>
