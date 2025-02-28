@@ -1318,6 +1318,44 @@ app.get('/api/students/:id', async (req, res) => {
   }
 });
 
+// First add the DELETE endpoint for school year
+app.delete('/api/school-years/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'DELETE FROM school_year WHERE school_year_id = $1 RETURNING *',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'School year not found' });
+    }
+    res.json({ message: 'School year deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting school year:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add GET endpoint for single school year
+app.get('/api/school-years/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM school_year WHERE school_year_id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'School year not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching school year:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 //THE API ENDPOINTS FRONTEND
 app.get('/', (req, res) => {
   res.send(`
@@ -1701,8 +1739,10 @@ app.get('/', (req, res) => {
           <span class="path">/api/school-years</span>
           <div class="form-group">
             <input type="text" id="schoolYear" placeholder="School Year (e.g., 2023-2024)">
-            <div class="form-row">
+            <div class="button-group">
               <button onclick="addSchoolYear()">Add School Year</button>
+              <button class="edit-btn" onclick="showEditDialog('schoolYear')">Edit School Year</button>
+              <button class="delete-btn" onclick="deleteSchoolYear()">Delete School Year</button>
             </div>
           </div>
           <div id="addSchoolYearResponse" class="response"></div>
@@ -1714,6 +1754,51 @@ app.get('/', (req, res) => {
         <div class="endpoint post">
           <span class="method">POST</span>
           <span class="path">/auth/login</span>
+        </div>
+      </div>
+
+      <!-- Add edit dialog for School Year -->
+      <div id="editSchoolYearDialog" class="edit-dialog">
+        <h3>Edit School Year</h3>
+        <div class="edit-form">
+          <div class="form-group">
+            <label>Select School Year:</label>
+            <select id="editSchoolYearSelect" onchange="loadSchoolYearData()"></select>
+          </div>
+          <div class="form-group">
+            <label>School Year:</label>
+            <input type="text" id="editSchoolYearInput">
+          </div>
+          <div class="form-group">
+            <label>Status:</label>
+            <select id="editSchoolYearStatus">
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeEditDialog('editSchoolYearDialog')">Cancel</button>
+          <button class="edit-btn" onclick="confirmEdit('schoolYear')">Save Changes</button>
+        </div>
+      </div>
+
+      <!-- Add delete dialog for School Year -->
+      <div id="deleteSchoolYearDialog" class="delete-dialog">
+        <h3>Delete School Year</h3>
+        <div class="delete-form">
+          <div class="form-group">
+            <label>Select School Year:</label>
+            <select id="schoolYearSelect" onchange="updateIdField('schoolYear')"></select>
+          </div>
+          <div class="form-group">
+            <label>Or Enter School Year ID:</label>
+            <input type="text" id="schoolYearId" placeholder="Enter School Year ID">
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeDeleteDialog('deleteSchoolYearDialog')">Cancel</button>
+          <button class="delete-btn" onclick="confirmDelete('schoolYear')">Delete</button>
         </div>
       </div>
 
@@ -2198,6 +2283,12 @@ app.get('/', (req, res) => {
                 age: parseInt(document.getElementById('editStudentAge').value)
               };
               break;
+            case 'schoolYear':
+              data = {
+                school_year: document.getElementById('editSchoolYearInput').value,
+                is_active: document.getElementById('editSchoolYearStatus').value === 'true'
+              };
+              break;
           }
 
           try {
@@ -2223,6 +2314,37 @@ app.get('/', (req, res) => {
             console.error('Update error:', error);
             alert(error.message);
           }
+        }
+
+        // Add loadSchoolYearData function
+        async function loadSchoolYearData() {
+          try {
+            const select = document.getElementById('editSchoolYearSelect');
+            if (!select.value) return;
+            
+            const response = await fetch('/api/school-years/' + select.value);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            if (!data) return;
+            
+            document.getElementById('editSchoolYearInput').value = data.school_year || '';
+            document.getElementById('editSchoolYearStatus').value = data.is_active.toString();
+          } catch (error) {
+            console.error('Error loading school year:', error);
+          }
+        }
+
+        // Add deleteSchoolYear function
+        async function deleteSchoolYear() {
+          const schoolYears = await apiCall('/api/school-years');
+          const select = document.getElementById('schoolYearSelect');
+          select.innerHTML = '<option value="">Select a school year...</option>' +
+            schoolYears.data.map(year => (
+              '<option value="' + year.school_year_id + '">' + 
+              year.school_year + ' (' + (year.is_active ? 'Active' : 'Inactive') + ')</option>'
+            )).join('');
+          showDeleteDialog('deleteSchoolYearDialog');
         }
       </script>
       <!-- Add delete dialogs -->
