@@ -1,0 +1,188 @@
+const fs = require('fs');
+const path = require('path');
+const { Pool } = require('pg');
+require('dotenv').config();
+
+// Create a database connection pool
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  connectionString: process.env.DATABASE_URL,
+});
+
+// Function to initialize the database with SQL from grade.sql
+async function initializeDatabase() {
+  try {
+    // Read the SQL file
+    const sqlFilePath = path.join(__dirname, 'grade.sql');
+    const sqlScript = fs.readFileSync(sqlFilePath, 'utf8');
+    
+    console.log('Initializing database from grade.sql...');
+    
+    // Execute the SQL script
+    await pool.query(sqlScript);
+    
+    console.log('Database initialization completed successfully');
+    return { success: true, message: 'Database initialized successfully' };
+  } catch (error) {
+    console.error('Error initializing database:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Function to query students data
+async function getStudents() {
+  try {
+    const result = await pool.query(`
+      SELECT s.*, u.username, u.user_type 
+      FROM student s
+      LEFT JOIN users u ON s.user_id = u.user_id
+    `);
+    return { success: true, data: result.rows };
+  } catch (error) {
+    console.error('Error querying students data:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Function to query teachers data
+async function getTeachers() {
+  try {
+    const result = await pool.query(`
+      SELECT t.*, u.username, u.user_type 
+      FROM teacher t
+      LEFT JOIN users u ON t.user_id = u.user_id
+    `);
+    return { success: true, data: result.rows };
+  } catch (error) {
+    console.error('Error querying teachers data:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Function to query subjects
+async function getSubjects() {
+  try {
+    const result = await pool.query('SELECT * FROM subject');
+    return { success: true, data: result.rows };
+  } catch (error) {
+    console.error('Error querying subjects data:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Function to query classes
+async function getClasses() {
+  try {
+    const result = await pool.query('SELECT * FROM class');
+    return { success: true, data: result.rows };
+  } catch (error) {
+    console.error('Error querying classes data:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Function to query student grades
+async function getStudentGrades(studentId = null) {
+  try {
+    let query = `
+      SELECT sg.*, s.fname, s.mname, s.lname, 
+             sub.subject_name, c.class_name, 
+             t.fname as teacher_fname, t.lname as teacher_lname
+      FROM student_grade sg
+      JOIN student s ON sg.student_id = s.student_id
+      JOIN subject sub ON sg.subject_id = sub.subject_id
+      JOIN class c ON sg.class_id = c.class_id
+      JOIN teacher t ON sg.teacher_id = t.teacher_id
+    `;
+    
+    const params = [];
+    if (studentId) {
+      query += ' WHERE sg.student_id = $1';
+      params.push(studentId);
+    }
+    
+    const result = await pool.query(query, params);
+    return { success: true, data: result.rows };
+  } catch (error) {
+    console.error('Error querying student grades:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Function to query class subjects
+async function getClassSubjects(classId = null) {
+  try {
+    let query = `
+      SELECT cs.*, c.class_name, s.subject_name, 
+             t.fname as teacher_fname, t.lname as teacher_lname
+      FROM class_subject cs
+      JOIN class c ON cs.class_id = c.class_id
+      JOIN subject s ON cs.subject_id = s.subject_id
+      JOIN teacher t ON cs.teacher_id = t.teacher_id
+    `;
+    
+    const params = [];
+    if (classId) {
+      query += ' WHERE cs.class_id = $1';
+      params.push(classId);
+    }
+    
+    const result = await pool.query(query, params);
+    return { success: true, data: result.rows };
+  } catch (error) {
+    console.error('Error querying class subjects:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Function to query class students
+async function getClassStudents(classId = null) {
+  try {
+    let query = `
+      SELECT cs.*, c.class_name, s.fname, s.mname, s.lname
+      FROM class_student cs
+      JOIN class c ON cs.class_id = c.class_id
+      JOIN student s ON cs.student_id = s.student_id
+    `;
+    
+    const params = [];
+    if (classId) {
+      query += ' WHERE cs.class_id = $1';
+      params.push(classId);
+    }
+    
+    const result = await pool.query(query, params);
+    return { success: true, data: result.rows };
+  } catch (error) {
+    console.error('Error querying class students:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Function to get active school year
+async function getActiveSchoolYear() {
+  try {
+    const result = await pool.query('SELECT * FROM school_year WHERE is_active = true');
+    return { success: true, data: result.rows[0] };
+  } catch (error) {
+    console.error('Error querying active school year:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+module.exports = {
+  pool,
+  initializeDatabase,
+  getStudents,
+  getTeachers,
+  getSubjects,
+  getClasses,
+  getStudentGrades,
+  getClassSubjects,
+  getClassStudents,
+  getActiveSchoolYear
+}; 
