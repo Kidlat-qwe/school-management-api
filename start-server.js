@@ -85,13 +85,7 @@ app.get('/api/classes', async (req, res) => {
       ORDER BY grade_level, section
     `);
     
-    // Map the results to ensure grade_level doesn't have duplicate "Grade" prefix
-    const classes = result.rows.map(cls => ({
-      ...cls,
-      grade_level: cls.grade_level.toString().replace(/^Grade\s+/i, '')
-    }));
-    
-    res.json(classes);
+    res.json(result.rows);
   } catch (error) {
     console.error('Error fetching classes:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -1773,7 +1767,7 @@ app.get('/', (req, res) => {
                 </div>
                 <div class="form-group">
                   <label for="classDescription">Description</label>
-                  <textarea class="form-control" id="classDescription" rows="3" placeholder="Optional description"></textarea>
+                  <textarea class="form-control" id="classDescription" rows="3" placeholder="e.g. Regular Class"></textarea>
                 </div>
                 <div id="classError" class="alert alert-danger mt-3" style="display: none;"></div>
               </form>
