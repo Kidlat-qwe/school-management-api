@@ -1,18 +1,16 @@
 const express = require('express');
-const { Pool } = require('pg');
 const cors = require('cors');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const path = require('path');
-const fs = require('fs');
+const { Pool } = require('pg');
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+
 const app = express();
 const port = process.env.PORT || 8000;
 
 // Enable CORS for all origins during development
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -26,7 +24,6 @@ const pool = new Pool({
   },
 });
 
-// Test database connection
 pool.connect()
   .then(() => console.log("✅ Connected to PostgreSQL!"))
   .catch(err => console.error("❌ Database connection error:", err));
