@@ -1473,7 +1473,525 @@ app.get('/api/school-years', async (req, res) => {
   }
 });
 
-const PORT = 5174;
+// Serve static files
+app.use(express.static('public'));
+app.use(express.urlencoded({ extended: true }));
+
+// Define API routes for CRUD operations
+
+// STUDENTS
+// Get all students
+app.get('/api/students', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT s.*, u.username FROM student s LEFT JOIN users u ON s.user_id = u.user_id ORDER BY s.student_id');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get student by ID
+app.get('/api/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('SELECT * FROM student WHERE student_id = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching student:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create new student
+app.post('/api/students', async (req, res) => {
+  try {
+    const { fname, mname, lname, gender, age, user_id } = req.body;
+    const result = await pool.query(
+      'INSERT INTO student (fname, mname, lname, gender, age, user_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [fname, mname, lname, gender, age, user_id]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating student:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update student
+app.put('/api/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fname, mname, lname, gender, age, user_id } = req.body;
+    const result = await pool.query(
+      'UPDATE student SET fname = $1, mname = $2, lname = $3, gender = $4, age = $5, user_id = $6 WHERE student_id = $7 RETURNING *',
+      [fname, mname, lname, gender, age, user_id, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating student:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete student
+app.delete('/api/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM student WHERE student_id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    res.json({ message: 'Student deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting student:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// TEACHERS
+// Get all teachers
+app.get('/api/teachers', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT t.*, u.username FROM teacher t LEFT JOIN users u ON t.user_id = u.user_id ORDER BY t.teacher_id');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching teachers:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// CLASSES
+app.get('/api/classes', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM class ORDER BY class_id');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching classes:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GRADES
+app.get('/api/grades', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT sg.*, s.fname, s.lname, sub.subject_name, c.grade_level, c.section
+      FROM student_grade sg
+      JOIN student s ON sg.student_id = s.student_id
+      JOIN subject sub ON sg.subject_id = sub.subject_id
+      JOIN class c ON sg.class_id = c.class_id
+      ORDER BY s.lname, sub.subject_name
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching grades:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Serve the main HTML file for the frontend
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Create the public directory and index.html file
+const fs = require('fs');
+const path = require('path');
+
+// Create public directory if it doesn't exist
+if (!fs.existsSync(path.join(__dirname, 'public'))) {
+  fs.mkdirSync(path.join(__dirname, 'public'));
+}
+
+// Create CSS directory if it doesn't exist
+if (!fs.existsSync(path.join(__dirname, 'public', 'css'))) {
+  fs.mkdirSync(path.join(__dirname, 'public', 'css'));
+}
+
+// Create JS directory if it doesn't exist
+if (!fs.existsSync(path.join(__dirname, 'public', 'js'))) {
+  fs.mkdirSync(path.join(__dirname, 'public', 'js'));
+}
+
+// Create index.html file
+const indexHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+      <a class="navbar-brand" href="#">School Management System</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-page="dashboard">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-page="students">Students</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-page="teachers">Teachers</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-page="classes">Classes</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-page="subjects">Subjects</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-page="grades">Grades</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-4">
+    <div id="page-content">
+      <!-- Page content will be loaded here -->
+      <div id="dashboard-page">
+        <h2>Dashboard</h2>
+        <div class="row mt-4">
+          <div class="col-md-3">
+            <div class="card text-white bg-primary mb-3">
+              <div class="card-body">
+                <h5 class="card-title">Students</h5>
+                <p class="card-text" id="student-count">Loading...</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-white bg-success mb-3">
+              <div class="card-body">
+                <h5 class="card-title">Teachers</h5>
+                <p class="card-text" id="teacher-count">Loading...</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-white bg-info mb-3">
+              <div class="card-body">
+                <h5 class="card-title">Classes</h5>
+                <p class="card-text" id="class-count">Loading...</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-white bg-warning mb-3">
+              <div class="card-body">
+                <h5 class="card-title">Subjects</h5>
+                <p class="card-text" id="subject-count">Loading...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="students-page" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2>Students</h2>
+          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">Add Student</button>
+        </div>
+        <div class="table-responsive mt-3">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>First Name</th>
+                <th>Middle Name</th>
+                <th>Last Name</th>
+                <th>Gender</th>
+                <th>Age</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="students-table-body">
+              <!-- Student data will be loaded here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Similar sections for teachers, classes, subjects, and grades -->
+      <!-- ... -->
+    </div>
+  </div>
+
+  <!-- Modals for adding/editing data -->
+  <div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Student</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="add-student-form">
+            <div class="mb-3">
+              <label for="fname" class="form-label">First Name</label>
+              <input type="text" class="form-control" id="fname" name="fname" required>
+            </div>
+            <div class="mb-3">
+              <label for="mname" class="form-label">Middle Name</label>
+              <input type="text" class="form-control" id="mname" name="mname">
+            </div>
+            <div class="mb-3">
+              <label for="lname" class="form-label">Last Name</label>
+              <input type="text" class="form-control" id="lname" name="lname" required>
+            </div>
+            <div class="mb-3">
+              <label for="gender" class="form-label">Gender</label>
+              <select class="form-control" id="gender" name="gender" required>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="age" class="form-label">Age</label>
+              <input type="number" class="form-control" id="age" name="age" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Similar modals for editing students and for teachers, classes, subjects, and grades -->
+  <!-- ... -->
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
+`;
+
+// Create CSS file
+const cssContent = `
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.navbar {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.table {
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+}
+
+.btn-action {
+  margin-right: 5px;
+}
+`;
+
+// Create JavaScript file
+const jsContent = `
+document.addEventListener('DOMContentLoaded', function() {
+  // Navigation
+  const navLinks = document.querySelectorAll('.nav-link');
+  const pages = document.querySelectorAll('[id$="-page"]');
+  
+  navLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetPage = this.getAttribute('data-page');
+      
+      // Hide all pages
+      pages.forEach(page => {
+        page.style.display = 'none';
+      });
+      
+      // Show target page
+      document.getElementById(targetPage + '-page').style.display = 'block';
+      
+      // Load data for the page
+      if (targetPage === 'dashboard') {
+        loadDashboardData();
+      } else if (targetPage === 'students') {
+        loadStudents();
+      } else if (targetPage === 'teachers') {
+        loadTeachers();
+      } else if (targetPage === 'classes') {
+        loadClasses();
+      } else if (targetPage === 'subjects') {
+        loadSubjects();
+      } else if (targetPage === 'grades') {
+        loadGrades();
+      }
+    });
+  });
+  
+  // Load dashboard data by default
+  loadDashboardData();
+  
+  // Add student form submission
+  const addStudentForm = document.getElementById('add-student-form');
+  if (addStudentForm) {
+    addStudentForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = {
+        fname: document.getElementById('fname').value,
+        mname: document.getElementById('mname').value,
+        lname: document.getElementById('lname').value,
+        gender: document.getElementById('gender').value,
+        age: parseInt(document.getElementById('age').value)
+      };
+      
+      fetch('/api/students', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Close modal and reload students
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentModal'));
+        modal.hide();
+        loadStudents();
+      })
+      .catch(error => {
+        console.error('Error adding student:', error);
+        alert('Error adding student. Please try again.');
+      });
+    });
+  }
+  
+  // Functions to load data
+  function loadDashboardData() {
+    // Load counts for dashboard
+    fetch('/api/students')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('student-count').textContent = data.length;
+      });
+    
+    fetch('/api/teachers')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('teacher-count').textContent = data.length;
+      });
+    
+    fetch('/api/classes')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('class-count').textContent = data.length;
+      });
+    
+    fetch('/api/subjects')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('subject-count').textContent = data.length;
+      });
+  }
+  
+  function loadStudents() {
+    fetch('/api/students')
+      .then(response => response.json())
+      .then(data => {
+        const tableBody = document.getElementById('students-table-body');
+        tableBody.innerHTML = '';
+        
+        data.forEach(student => {
+          const row = document.createElement('tr');
+          row.innerHTML = \`
+            <td>\${student.student_id}</td>
+            <td>\${student.fname}</td>
+            <td>\${student.mname || ''}</td>
+            <td>\${student.lname}</td>
+            <td>\${student.gender}</td>
+            <td>\${student.age}</td>
+            <td>
+              <button class="btn btn-sm btn-primary btn-action edit-student" data-id="\${student.student_id}">Edit</button>
+              <button class="btn btn-sm btn-danger btn-action delete-student" data-id="\${student.student_id}">Delete</button>
+            </td>
+          \`;
+          tableBody.appendChild(row);
+        });
+        
+        // Add event listeners for edit and delete buttons
+        addStudentActionListeners();
+      })
+      .catch(error => {
+        console.error('Error loading students:', error);
+      });
+  }
+  
+  function addStudentActionListeners() {
+    // Edit student
+    document.querySelectorAll('.edit-student').forEach(button => {
+      button.addEventListener('click', function() {
+        const studentId = this.getAttribute('data-id');
+        // Load student data and open edit modal
+        // ...
+      });
+    });
+    
+    // Delete student
+    document.querySelectorAll('.delete-student').forEach(button => {
+      button.addEventListener('click', function() {
+        const studentId = this.getAttribute('data-id');
+        if (confirm('Are you sure you want to delete this student?')) {
+          fetch(\`/api/students/\${studentId}\`, {
+            method: 'DELETE'
+          })
+          .then(response => response.json())
+          .then(data => {
+            loadStudents();
+          })
+          .catch(error => {
+            console.error('Error deleting student:', error);
+          });
+        }
+      });
+    });
+  }
+  
+  // Similar functions for teachers, classes, subjects, and grades
+  // ...
+});
+`;
+
+// Write files
+fs.writeFileSync(path.join(__dirname, 'public', 'index.html'), indexHtml);
+fs.writeFileSync(path.join(__dirname, 'public', 'css', 'styles.css'), cssContent);
+fs.writeFileSync(path.join(__dirname, 'public', 'js', 'main.js'), jsContent);
+
+// Start the server
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 }); 
