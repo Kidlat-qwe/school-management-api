@@ -1579,92 +1579,176 @@ app.get('/', (req, res) => {
         </div>
       </header>
 
-      <div class="container">
-        <div class="main-content">
-          <!-- Classes Section -->
-          <div class="card">
-            <div class="card-header">
-              <h2 class="card-title">Classes</h2>
-              <button class="btn btn-primary">
-                <i class="fas fa-plus"></i>
-                Add Class
-              </button>
+      <div class="container mt-4">
+        <div class="row">
+          <div class="col-12">
+            <!-- Classes Tab Content -->
+            <div id="classesTab" class="tab-content card">
+              <div class="card-header">
+                <h2 class="card-title">Classes</h2>
+                <button class="btn btn-primary">
+                  <i class="fas fa-plus"></i>
+                  Add Class
+                </button>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Grade Level</th>
+                      <th>Section</th>
+                      <th>School Year</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="classesTableBody"></tbody>
+                </table>
+              </div>
             </div>
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Grade Level</th>
-                    <th>Section</th>
-                    <th>School Year</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="classesTableBody"></tbody>
-              </table>
-            </div>
-          </div>
 
-          <!-- Students Section -->
-          <div class="card">
-            <div class="card-header">
-              <h2 class="card-title">Students</h2>
-              <button class="btn btn-primary">
-                <i class="fas fa-plus"></i>
-                Add Student
-              </button>
+            <!-- Students Tab Content -->
+            <div id="studentsTab" class="tab-content card" style="display: none;">
+              <div class="card-header">
+                <h2 class="card-title">Students</h2>
+                <button class="btn btn-primary">
+                  <i class="fas fa-plus"></i>
+                  Add Student
+                </button>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Class</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="studentsTableBody"></tbody>
+                </table>
+              </div>
             </div>
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Grade Level</th>
-                    <th>Section</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="studentsTableBody"></tbody>
-              </table>
-            </div>
-          </div>
 
-          <!-- Teachers Section -->
-          <div class="card">
-            <div class="card-header">
-              <h2 class="card-title">Teachers</h2>
-              <button class="btn btn-primary">
-                <i class="fas fa-plus"></i>
-                Add Teacher
-              </button>
+            <!-- Teachers Tab Content -->
+            <div id="teachersTab" class="tab-content card" style="display: none;">
+              <div class="card-header">
+                <h2 class="card-title">Teachers</h2>
+                <button class="btn btn-primary">
+                  <i class="fas fa-plus"></i>
+                  Add Teacher
+                </button>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Subjects</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teachersTableBody"></tbody>
+                </table>
+              </div>
             </div>
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Subjects</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="teachersTableBody"></tbody>
-              </table>
+
+            <!-- Subjects Tab Content -->
+            <div id="subjectsTab" class="tab-content card" style="display: none;">
+              <div class="card-header">
+                <h2 class="card-title">Subjects</h2>
+                <button class="btn btn-primary">
+                  <i class="fas fa-plus"></i>
+                  Add Subject
+                </button>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Teachers</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="subjectsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Grades Tab Content -->
+            <div id="gradesTab" class="tab-content card" style="display: none;">
+              <div class="card-header">
+                <h2 class="card-title">Grades</h2>
+                <button class="btn btn-primary">
+                  <i class="fas fa-plus"></i>
+                  Add Grade
+                </button>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Subject</th>
+                      <th>Grade</th>
+                      <th>Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="gradesTableBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <script>
-        // Your existing JavaScript code here
         document.addEventListener('DOMContentLoaded', () => {
+          // Function to show the selected tab content and hide others
+          const showTab = (tabId) => {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+              content.style.display = 'none';
+            });
+            
+            // Show the selected tab content
+            const selectedContent = document.getElementById(tabId);
+            if (selectedContent) {
+              selectedContent.style.display = 'block';
+            }
+          };
+          
           // Add click handlers for navigation
           document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
+              e.preventDefault();
+              
+              // Update active class
               document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
               e.target.classList.add('active');
+              
+              // Get the tab to show based on the link text
+              const tabText = e.target.textContent.trim();
+              const tabMap = {
+                'Classes': 'classesTab',
+                'Students': 'studentsTab',
+                'Teachers': 'teachersTab',
+                'Subjects': 'subjectsTab',
+                'Grades': 'gradesTab'
+              };
+              
+              if (tabMap[tabText]) {
+                showTab(tabMap[tabText]);
+              }
             });
           });
+          
+          // Show the Classes tab by default
+          showTab('classesTab');
         });
       </script>
     </body>
