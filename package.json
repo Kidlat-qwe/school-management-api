@@ -7,8 +7,7 @@
     "start": "node start-server.js",
     "dev": "nodemon start-server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npm install",
-    "postinstall": "chmod +x install-and-run.sh"
+    "build": "npm install"
   },
   "keywords": [],
   "author": "",
