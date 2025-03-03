@@ -85,7 +85,13 @@ app.get('/api/classes', async (req, res) => {
       ORDER BY grade_level, section
     `);
     
-    res.json(result.rows);
+    // Map the results to ensure grade_level doesn't have duplicate "Grade" prefix
+    const classes = result.rows.map(cls => ({
+      ...cls,
+      grade_level: cls.grade_level.toString().replace(/^Grade\s+/i, '')
+    }));
+    
+    res.json(classes);
   } catch (error) {
     console.error('Error fetching classes:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -676,15 +682,15 @@ app.get('/api/academic-rankings/check-quarters', async (req, res) => {
   }
 });
 
-// PATCH endpoint to update a subject
-app.patch('/api/subjects/:id', async (req, res) => {
+// PUT endpoint to update a subject
+app.put('/api/subjects/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { subject_name } = req.body;  // Changed from subjectName to subject_name
+    const { subjectName } = req.body;
     
     const result = await pool.query(
       'UPDATE subject SET subject_name = $1 WHERE subject_id = $2 RETURNING *',
-      [subject_name, id]
+      [subjectName, id]
     );
 
     if (result.rows.length === 0) {
@@ -1112,242 +1118,12 @@ app.delete('/api/students/:id', async (req, res) => {
       'DELETE FROM student WHERE student_id = $1 RETURNING *',
       [id]
     );
-    
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Student not found' });
     }
-    
     res.json({ message: 'Student deleted successfully' });
   } catch (error) {
     console.error('Error deleting student:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// PATCH endpoint to update a subject
-app.patch('/api/subjects/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { subject_name } = req.body;  // Changed from subjectName to subject_name
-    
-    const result = await pool.query(
-      'UPDATE subject SET subject_name = $1 WHERE subject_id = $2 RETURNING *',
-      [subject_name, id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Subject not found' });
-    }
-
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error updating subject:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// PATCH endpoint to update a class
-app.patch('/api/classes/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { grade_level, section, school_year, class_description } = req.body;
-    
-    const result = await pool.query(
-      'UPDATE class SET grade_level = $1, section = $2, school_year = $3, class_description = $4 WHERE class_id = $5 RETURNING *',
-      [grade_level, section, school_year, class_description, id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Class not found' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error updating class:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// PATCH endpoint to update a teacher
-app.patch('/api/teachers/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { fname, mname, lname, gender } = req.body;
-    
-    const result = await pool.query(
-      'UPDATE teacher SET fname = $1, mname = $2, lname = $3, gender = $4 WHERE teacher_id = $5 RETURNING *',
-      [fname, mname, lname, gender, id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Teacher not found' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error updating teacher:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// PATCH endpoint to update a student
-app.patch('/api/students/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { fname, mname, lname, gender, age } = req.body;
-    
-    const result = await pool.query(
-      'UPDATE student SET fname = $1, mname = $2, lname = $3, gender = $4, age = $5 WHERE student_id = $6 RETURNING *',
-      [fname, mname, lname, gender, age, id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error updating student:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// PATCH endpoint to update a school year
-app.patch('/api/school-years/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { school_year, is_active } = req.body;
-    
-    const result = await pool.query(
-      'UPDATE school_year SET school_year = $1, is_active = $2 WHERE school_year_id = $3 RETURNING *',
-      [school_year, is_active, id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'School year not found' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error updating school year:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Add GET endpoint for single subject
-app.get('/api/subjects/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query(
-      'SELECT * FROM subject WHERE subject_id = $1',
-      [id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Subject not found' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching subject:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Add GET endpoint for single class
-app.get('/api/classes/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query(
-      'SELECT * FROM class WHERE class_id = $1',
-      [id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Class not found' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching class:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Add GET endpoint for single teacher
-app.get('/api/teachers/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query(
-      'SELECT * FROM teacher WHERE teacher_id = $1',
-      [id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Teacher not found' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching teacher:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Add GET endpoint for single student
-app.get('/api/students/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query(
-      'SELECT * FROM student WHERE student_id = $1',
-      [id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching student:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// First add the DELETE endpoint for school year
-app.delete('/api/school-years/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query(
-      'DELETE FROM school_year WHERE school_year_id = $1 RETURNING *',
-      [id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'School year not found' });
-    }
-    res.json({ message: 'School year deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting school year:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Add GET endpoint for single school year
-app.get('/api/school-years/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query(
-      'SELECT * FROM school_year WHERE school_year_id = $1',
-      [id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'School year not found' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching school year:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1358,697 +1134,734 @@ app.get('/', (req, res) => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>School Management System</title>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-      <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+      <title>School DB API v1.0</title>
       <style>
-        :root {
-          --primary-color: #4F46E5;
-          --primary-hover: #4338CA;
-          --secondary-color: #10B981;
-          --secondary-hover: #059669;
-          --background-color: #F3F4F6;
-          --surface-color: #FFFFFF;
-          --text-primary: #111827;
-          --text-secondary: #6B7280;
-          --border-color: #E5E7EB;
-          --danger-color: #EF4444;
-          --warning-color: #F59E0B;
-        }
-
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-          font-family: 'Inter', sans-serif;
-        }
-
         body {
-          background-color: var(--background-color);
-          color: var(--text-primary);
-          line-height: 1.5;
-        }
-
-        .container {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           max-width: 1200px;
-          margin: 0 auto;
-          padding: 2rem;
-        }
-
-        .header {
-          background-color: var(--surface-color);
-          padding: 1rem 2rem;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          margin-bottom: 2rem;
-        }
-
-        .header-content {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .logo {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: var(--primary-color);
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .nav-menu {
-          display: flex;
-          gap: 1rem;
-          list-style: none;
-        }
-
-        .nav-link {
-          color: var(--text-secondary);
-          text-decoration: none;
-          padding: 0.5rem 1rem;
-          border-radius: 0.5rem;
-          transition: all 0.3s ease;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-          background-color: var(--primary-color);
-          color: white;
-        }
-
-        .main-content {
+          margin: 20px auto;
+          padding: 0 20px;
+          line-height: 1.4;
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 2rem;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
         }
-
-        .card {
-          background-color: var(--surface-color);
-          border-radius: 0.75rem;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          padding: 1.5rem;
+        h1 {
+          color: #2c3e50;
+          grid-column: 1 / -1;
+          margin: 0 0 20px 0;
+          border-bottom: 2px solid #eee;
+          padding-bottom: 10px;
         }
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 1.5rem;
+        .section {
+          background: #f8f9fa;
+          padding: 15px;
+          border-radius: 8px;
         }
-
-        .card-title {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: var(--text-primary);
+        h2 {
+          color: #2980b9;
+          margin: 0 0 15px 0;
+          font-size: 1.2em;
         }
-
-        .btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.625rem 1.25rem;
-          font-weight: 500;
-          border-radius: 0.5rem;
+        .endpoint {
+          margin: 8px 0;
+          font-size: 0.9em;
+        }
+        .get .method { color: #27ae60; }
+        .post .method { color: #e67e22; }
+        .put .method { color: #2980b9; }
+        .delete .method { color: #c0392b; }
+        .method {
+          display: inline-block;
+          font-weight: bold;
+          width: 45px;
+          font-size: 0.9em;
+        }
+        .path {
+          font-family: monospace;
+          background: #fff;
+          padding: 2px 4px;
+          border-radius: 3px;
+          font-size: 0.9em;
+        }
+        .form-group {
+          margin: 10px 0;
+        }
+        input, button {
+          margin: 5px 0;
+          padding: 4px 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+        }
+        button {
+          background: #3498db;
+          color: white;
           border: none;
           cursor: pointer;
-          transition: all 0.3s ease;
         }
-
-        .btn-primary {
-          background-color: var(--primary-color);
+        button:hover {
+          background: #2980b9;
+        }
+        .response {
+          margin-top: 10px;
+          padding: 8px;
+          background: #fff;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 0.8em;
+          word-break: break-all;
+          display: none;
+          max-height: 300px;
+          overflow-y: auto;
+          border: 1px solid #eee;
+        }
+        
+        .response::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .response::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+        
+        .response::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 4px;
+        }
+        
+        .response::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+        
+        .response pre {
+          margin: 0;
+          padding-right: 10px;
+        }
+        
+        .button-group {
+          display: flex;
+          gap: 5px;
+        }
+        
+        .close-btn {
+          background: #e74c3c;
+        }
+        
+        .close-btn:hover {
+          background: #c0392b;
+        }
+        
+        .form-group input {
+          width: calc(100% - 16px);
+          margin: 4px 0;
+        }
+        
+        .form-row {
+          display: flex;
+          gap: 10px;
+        }
+        
+        .form-row input {
+          flex: 1;
+        }
+        .delete-btn {
+          background: #e74c3c;
           color: white;
+          border: none;
+          padding: 4px 8px;
+          border-radius: 4px;
+          cursor: pointer;
         }
-
-        .btn-primary:hover {
-          background-color: var(--primary-hover);
+        .delete-btn:hover {
+          background: #c0392b;
         }
-
-        .table-container {
-          overflow-x: auto;
+        /* Add styles for the delete dialog */
+        .delete-dialog {
+          display: none;
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          z-index: 1000;
         }
-
-        table {
+        .delete-dialog h3 {
+          margin-top: 0;
+        }
+        .delete-dialog select {
           width: 100%;
-          border-collapse: separate;
-          border-spacing: 0;
+          margin: 10px 0;
+          padding: 5px;
         }
-
-        th, td {
-          padding: 1rem;
-          text-align: left;
-          border-bottom: 1px solid var(--border-color);
+        .delete-dialog .button-group {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          margin-top: 15px;
         }
-
-        th {
-          background-color: #F9FAFB;
-          font-weight: 600;
-          color: var(--text-secondary);
+        .overlay {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          z-index: 999;
         }
-
-        tr:hover {
-          background-color: #F9FAFB;
+        .delete-form {
+          margin: 15px 0;
         }
-
-        .badge {
-          padding: 0.25rem 0.75rem;
-          border-radius: 9999px;
-          font-size: 0.875rem;
-          font-weight: 500;
+        .delete-form .form-group {
+          margin: 10px 0;
         }
-
-        .badge.success {
-          background-color: #D1FAE5;
-          color: #065F46;
+        .delete-form label {
+          display: block;
+          margin-bottom: 5px;
+          font-weight: bold;
         }
-
-        .badge.warning {
-          background-color: #FEF3C7;
-          color: #92400E;
-        }
-
-        .badge.danger {
-          background-color: #FEE2E2;
-          color: #991B1B;
-        }
-
-        @media (max-width: 768px) {
-          .header-content {
-            flex-direction: column;
-            gap: 1rem;
-          }
-
-          .nav-menu {
-            flex-direction: column;
-            width: 100%;
-          }
-
-          .nav-link {
-            display: block;
-            text-align: center;
-          }
-
-          .main-content {
-            grid-template-columns: 1fr;
-          }
+        .delete-form select,
+        .delete-form input {
+          width: 100%;
+          padding: 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          margin-top: 5px;
         }
       </style>
     </head>
     <body>
-      <header class="header">
-        <div class="header-content">
-          <div class="logo">
-            <i class="fas fa-graduation-cap"></i>
-            <span>School Management System</span>
+      <h1>School DB API v1.0</h1>
+
+      <div class="section">
+        <h2>Subjects</h2>
+        <div class="endpoint get">
+          <span class="method">GET</span>
+          <span class="path">/api/subjects</span>
+          <div class="button-group">
+            <button onclick="fetchSubjects()">Try it</button>
+            <button class="close-btn" onclick="toggleResponse('subjectsResponse')">Close</button>
           </div>
-          <nav>
-            <ul class="nav-menu">
-              <li><a href="#classes" class="nav-link active">Classes</a></li>
-              <li><a href="#students" class="nav-link">Students</a></li>
-              <li><a href="#teachers" class="nav-link">Teachers</a></li>
-              <li><a href="#subjects" class="nav-link">Subjects</a></li>
-              <li><a href="#grades" class="nav-link">Grades</a></li>
-              <li><a href="#school-years" class="nav-link">School Years</a></li>
-            </ul>
-          </nav>
+          <div id="subjectsResponse" class="response"></div>
         </div>
-      </header>
-
-      <div class="container mt-4">
-        <div class="row">
-          <div class="col-12">
-            <!-- Classes Tab Content -->
-            <div id="classesTab" class="tab-content card">
-              <div class="card-header">
-                <h2 class="card-title">Classes</h2>
-                <button class="btn btn-primary" id="addClassBtn">
-                  <i class="fas fa-plus"></i>
-                  Add Class
-                </button>
-              </div>
-              <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Grade Level</th>
-                      <th>Section</th>
-                      <th>School Year</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="classesTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Students Tab Content -->
-            <div id="studentsTab" class="tab-content card" style="display: none;">
-              <div class="card-header">
-                <h2 class="card-title">Students</h2>
-                <button class="btn btn-primary">
-                  <i class="fas fa-plus"></i>
-                  Add Student
-                </button>
-              </div>
-              <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Class</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="studentsTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Teachers Tab Content -->
-            <div id="teachersTab" class="tab-content card" style="display: none;">
-              <div class="card-header">
-                <h2 class="card-title">Teachers</h2>
-                <button class="btn btn-primary">
-                  <i class="fas fa-plus"></i>
-                  Add Teacher
-                </button>
-              </div>
-              <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Subjects</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="teachersTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Subjects Tab Content -->
-            <div id="subjectsTab" class="tab-content card" style="display: none;">
-              <div class="card-header">
-                <h2 class="card-title">Subjects</h2>
-                <button class="btn btn-primary">
-                  <i class="fas fa-plus"></i>
-                  Add Subject
-                </button>
-              </div>
-              <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Teachers</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="subjectsTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Grades Tab Content -->
-            <div id="gradesTab" class="tab-content card" style="display: none;">
-              <div class="card-header">
-                <h2 class="card-title">Grades</h2>
-                <button class="btn btn-primary">
-                  <i class="fas fa-plus"></i>
-                  Add Grade
-                </button>
-              </div>
-              <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Student</th>
-                      <th>Subject</th>
-                      <th>Grade</th>
-                      <th>Date</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="gradesTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-            
-            <!-- School Years Tab Content -->
-            <div id="schoolYearsTab" class="tab-content card" style="display: none;">
-              <div class="card-header">
-                <h2 class="card-title">School Years</h2>
-                <button class="btn btn-primary" id="addSchoolYearBtn">
-                  <i class="fas fa-plus"></i>
-                  Add School Year
-                </button>
-              </div>
-              <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Year Name</th>
-                      <th>Start Date</th>
-                      <th>End Date</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="schoolYearsTableBody"></tbody>
-                </table>
-              </div>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/api/subjects</span>
+          <div class="form-group">
+            <input type="text" id="subjectName" placeholder="Subject Name">
+            <div class="button-group">
+              <button onclick="addSubject()">Add Subject</button>
+              <button class="delete-btn" onclick="deleteSubject()">Delete Subject</button>
             </div>
           </div>
+          <div id="addSubjectResponse" class="response"></div>
         </div>
       </div>
 
-      <!-- Login Modal -->
-      <div class="modal fade" id="loginModal" tabindex="-1" role="dialog" aria-labelledby="loginModalLabel" aria-hidden="true">
-        <!-- ... existing login modal code ... -->
-      </div>
-
-      <!-- School Year Modal -->
-      <div class="modal fade" id="schoolYearModal" tabindex="-1" role="dialog" aria-labelledby="schoolYearModalLabel" aria-hidden="true">
-        <!-- ... existing school year modal code ... -->
-      </div>
-      
-      <!-- Class Modal -->
-      <div class="modal fade" id="classModal" tabindex="-1" role="dialog" aria-labelledby="classModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="classModalLabel">Add Class</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-            <div class="modal-body">
-              <form id="classForm">
-                <input type="hidden" id="classId">
-                <div class="form-group">
-                  <label for="gradeLevel">Grade Level</label>
-                  <input type="text" class="form-control" id="gradeLevel" required>
-                </div>
-                <div class="form-group">
-                  <label for="section">Section</label>
-                  <input type="text" class="form-control" id="section" required>
-                </div>
-                <div class="form-group">
-                  <label for="classSchoolYear">School Year</label>
-                  <select class="form-control" id="classSchoolYear" required>
-                    <!-- School years will be loaded dynamically -->
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="classDescription">Description</label>
-                  <textarea class="form-control" id="classDescription" rows="3"></textarea>
-                </div>
-                <div id="classError" class="alert alert-danger mt-3" style="display: none;"></div>
-              </form>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-              <button type="button" class="btn btn-primary" id="saveClassBtn">Save</button>
+      <div class="section">
+        <h2>Classes</h2>
+        <div class="endpoint get">
+          <span class="method">GET</span>
+          <span class="path">/api/classes</span>
+          <div class="button-group">
+            <button onclick="fetchClasses()">Try it</button>
+            <button class="close-btn" onclick="toggleResponse('classesResponse')">Close</button>
+          </div>
+          <div id="classesResponse" class="response"></div>
+        </div>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/api/classes</span>
+          <div class="form-group">
+            <input type="text" id="gradeLevel" placeholder="Grade Level">
+            <input type="text" id="section" placeholder="Section">
+            <input type="text" id="schoolYear" placeholder="School Year">
+            <input type="text" id="classDescription" placeholder="Description">
+            <div class="button-group">
+              <button onclick="addClass()">Add Class</button>
+              <button class="delete-btn" onclick="deleteClass()">Delete Class</button>
             </div>
           </div>
+          <div id="addClassResponse" class="response"></div>
         </div>
       </div>
 
-      <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+      <div class="section">
+        <h2>Teachers</h2>
+        <div class="endpoint get">
+          <span class="method">GET</span>
+          <span class="path">/api/teachers</span>
+          <div class="button-group">
+            <button onclick="fetchTeachers()">Try it</button>
+            <button class="close-btn" onclick="toggleResponse('teachersResponse')">Close</button>
+          </div>
+          <div id="teachersResponse" class="response"></div>
+        </div>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/api/teachers</span>
+          <div class="form-group">
+            <input type="text" id="teacherId" placeholder="Teacher ID">
+            <input type="text" id="fname" placeholder="First Name">
+            <input type="text" id="mname" placeholder="Middle Name">
+            <input type="text" id="lname" placeholder="Last Name">
+            <input type="text" id="gender" placeholder="Gender">
+            <div class="button-group">
+              <button onclick="addTeacher()">Add Teacher</button>
+              <button class="delete-btn" onclick="deleteTeacher()">Delete Teacher</button>
+            </div>
+          </div>
+          <div id="addTeacherResponse" class="response"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Students</h2>
+        <div class="endpoint get">
+          <span class="method">GET</span>
+          <span class="path">/api/students</span>
+          <div class="button-group">
+            <button onclick="fetchStudents()">Try it</button>
+            <button class="close-btn" onclick="toggleResponse('studentsResponse')">Close</button>
+          </div>
+          <div id="studentsResponse" class="response"></div>
+        </div>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/api/students</span>
+          <div class="form-group">
+            <div class="form-row">
+              <input type="text" id="studentFname" placeholder="First Name">
+              <input type="text" id="studentMname" placeholder="Middle Name">
+              <input type="text" id="studentLname" placeholder="Last Name">
+            </div>
+            <div class="form-row">
+              <input type="text" id="studentGender" placeholder="Gender">
+              <input type="number" id="studentAge" placeholder="Age">
+            </div>
+            <div class="button-group">
+              <button onclick="addStudent()">Add Student</button>
+              <button class="delete-btn" onclick="deleteStudent()">Delete Student</button>
+            </div>
+          </div>
+          <div id="addStudentResponse" class="response"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>School Year</h2>
+        <div class="endpoint get">
+          <span class="method">GET</span>
+          <span class="path">/api/school-years</span>
+          <div class="button-group">
+            <button onclick="fetchSchoolYears()">Try it</button>
+            <button class="close-btn" onclick="toggleResponse('schoolYearsResponse')">Close</button>
+          </div>
+          <div id="schoolYearsResponse" class="response"></div>
+        </div>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/api/school-years</span>
+          <div class="form-group">
+            <input type="text" id="schoolYear" placeholder="School Year (e.g., 2023-2024)">
+            <div class="form-row">
+              <button onclick="addSchoolYear()">Add School Year</button>
+            </div>
+          </div>
+          <div id="addSchoolYearResponse" class="response"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Authentication</h2>
+        <div class="endpoint post">
+          <span class="method">POST</span>
+          <span class="path">/auth/login</span>
+        </div>
+      </div>
+
       <script>
-        document.addEventListener('DOMContentLoaded', () => {
-          // Function to show the selected tab content and hide others
-          const showTab = (tabId) => {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(content => {
-              content.style.display = 'none';
+        // Utility function to handle API calls
+        async function apiCall(endpoint, method = 'GET', body = null) {
+          try {
+            const response = await fetch(endpoint, {
+              method,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: body ? JSON.stringify(body) : null
             });
-            
-            // Show the selected tab content
-            const selectedContent = document.getElementById(tabId);
-            if (selectedContent) {
-              selectedContent.style.display = 'block';
-            }
-            
-            // Load data for the tab if needed
-            if (tabId === 'classesTab') {
-              loadClasses();
-              loadSchoolYearsForDropdown();
-            } else if (tabId === 'schoolYearsTab') {
-              loadSchoolYears();
-            }
+            const data = await response.json();
+            return { success: true, data };
+          } catch (error) {
+            return { success: false, error: error.message };
+          }
+        }
+
+        // Add toggle function
+        function toggleResponse(elementId) {
+          const element = document.getElementById(elementId);
+          if (element.style.display === 'none' || !element.style.display) {
+            element.style.display = 'block';
+          } else {
+            element.style.display = 'none';
+          }
+        }
+
+        // Subjects
+        async function fetchSubjects() {
+          const responseElement = document.getElementById('subjectsResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/subjects');
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        async function addSubject() {
+          const subjectName = document.getElementById('subjectName').value;
+          const responseElement = document.getElementById('addSubjectResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/subjects', 'POST', { subjectName });
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        // Classes
+        async function fetchClasses() {
+          const responseElement = document.getElementById('classesResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/classes');
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        async function addClass() {
+          const body = {
+            grade_level: document.getElementById('gradeLevel').value,
+            section: document.getElementById('section').value,
+            school_year: document.getElementById('schoolYear').value,
+            class_description: document.getElementById('classDescription').value
+          };
+          const result = await apiCall('/api/classes', 'POST', body);
+          document.getElementById('addClassResponse').innerHTML = 
+            '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        // Teachers
+        async function fetchTeachers() {
+          const responseElement = document.getElementById('teachersResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/teachers');
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        async function addTeacher() {
+          const body = {
+            teacherId: document.getElementById('teacherId').value,
+            fname: document.getElementById('fname').value,
+            mname: document.getElementById('mname').value,
+            lname: document.getElementById('lname').value,
+            gender: document.getElementById('gender').value
+          };
+          const result = await apiCall('/api/teachers', 'POST', body);
+          document.getElementById('addTeacherResponse').innerHTML = 
+            '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        // Students
+        async function fetchStudents() {
+          const responseElement = document.getElementById('studentsResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/students');
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        async function addStudent() {
+          const body = {
+            fname: document.getElementById('studentFname').value,
+            mname: document.getElementById('studentMname').value,
+            lname: document.getElementById('studentLname').value,
+            gender: document.getElementById('studentGender').value,
+            age: parseInt(document.getElementById('studentAge').value)
           };
           
-          // Function to load school years for the dropdown
-          const loadSchoolYearsForDropdown = async () => {
+          const responseElement = document.getElementById('addStudentResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/students', 'POST', body);
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        // School Years
+        async function fetchSchoolYears() {
+          const responseElement = document.getElementById('schoolYearsResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/school-years');
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        async function addSchoolYear() {
+          const body = {
+            school_year: document.getElementById('schoolYear').value,
+            is_active: false // Default to inactive when creating
+          };
+          
+          const responseElement = document.getElementById('addSchoolYearResponse');
+          responseElement.style.display = 'block';
+          const result = await apiCall('/api/school-years', 'POST', body);
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+        }
+
+        // Confirmation dialog for adding records
+        async function confirmAdd(type, callback) {
+          if (confirm('Are you sure you want to add this ' + type + '?')) {
+            await callback();
+          }
+        }
+
+        // Confirmation dialog for deleting records
+        async function confirmDelete(type, id) {
+          if (confirm('Are you sure you want to delete this ' + type + '?')) {
             try {
-              const response = await fetch('/api/school-years');
-              if (!response.ok) {
-                throw new Error('Failed to fetch school years');
-              }
-              
-              const data = await response.json();
-              const schoolYears = data.data || [];
-              
-              const dropdown = document.getElementById('classSchoolYear');
-              dropdown.innerHTML = '';
-              
-              schoolYears.forEach(year => {
-                const option = document.createElement('option');
-                option.value = year.school_year;
-                option.textContent = year.school_year;
-                option.selected = year.is_active;
-                dropdown.appendChild(option);
+              const response = await fetch('/api/' + type + 's/' + id, {
+                method: 'DELETE',
               });
+              const result = await response.json();
+              alert(result.message);
+              // Refresh the list after deletion
+              window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
             } catch (error) {
-              console.error('Error loading school years for dropdown:', error);
+              console.error('Error:', error);
+              alert('Failed to delete ' + type);
             }
-          };
-          
-          // Function to load classes from the server
-          const loadClasses = async () => {
-            try {
-              const response = await fetch('/api/classes');
-              if (!response.ok) {
-                throw new Error('Failed to fetch classes');
-              }
-              
-              const classes = await response.json();
-              renderClasses(classes);
-            } catch (error) {
-              console.error('Error loading classes:', error);
-              alert('Failed to load classes. Please try again later.');
-            }
-          };
-          
-          // Function to render classes in the table
-          const renderClasses = (classes) => {
-            const tableBody = document.getElementById('classesTableBody');
-            tableBody.innerHTML = '';
-            
-            if (classes.length === 0) {
-              const row = document.createElement('tr');
-              const cell = document.createElement('td');
-              cell.colSpan = 4;
-              cell.textContent = 'No classes found';
-              cell.style.textAlign = 'center';
-              row.appendChild(cell);
-              tableBody.appendChild(row);
-              return;
-            }
-            
-            classes.forEach(cls => {
-              const row = document.createElement('tr');
-              
-              // Grade Level
-              const gradeLevelCell = document.createElement('td');
-              gradeLevelCell.textContent = cls.grade_level;
-              row.appendChild(gradeLevelCell);
-              
-              // Section
-              const sectionCell = document.createElement('td');
-              sectionCell.textContent = cls.section;
-              row.appendChild(sectionCell);
-              
-              // School Year
-              const schoolYearCell = document.createElement('td');
-              schoolYearCell.textContent = cls.school_year;
-              row.appendChild(schoolYearCell);
-              
-              // Actions
-              const actionsCell = document.createElement('td');
-              
-              // View button
-              const viewBtn = document.createElement('button');
-              viewBtn.className = 'btn btn-sm btn-info mr-1';
-              viewBtn.innerHTML = '<i class="fas fa-eye"></i>';
-              viewBtn.title = 'View Details';
-              viewBtn.addEventListener('click', () => viewClassDetails(cls.class_id));
-              actionsCell.appendChild(viewBtn);
-              
-              // Edit button
-              const editBtn = document.createElement('button');
-              editBtn.className = 'btn btn-sm btn-primary mr-1';
-              editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-              editBtn.title = 'Edit Class';
-              editBtn.addEventListener('click', () => editClass(cls));
-              actionsCell.appendChild(editBtn);
-              
-              // Delete button
-              const deleteBtn = document.createElement('button');
-              deleteBtn.className = 'btn btn-sm btn-danger';
-              deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-              deleteBtn.title = 'Delete Class';
-              deleteBtn.addEventListener('click', () => deleteClass(cls.class_id));
-              actionsCell.appendChild(deleteBtn);
-              
-              row.appendChild(actionsCell);
-              tableBody.appendChild(row);
-            });
-          };
-          
-          // Add Class button handler
-          const addClassBtn = document.getElementById('addClassBtn');
-          addClassBtn.addEventListener('click', () => {
-            // Reset form
-            document.getElementById('classForm').reset();
-            document.getElementById('classId').value = '';
-            document.getElementById('classModalLabel').textContent = 'Add Class';
-            document.getElementById('classError').style.display = 'none';
-            
-            // Show modal
-            $('#classModal').modal('show');
+          }
+        }
+
+        // Update the add functions to use confirmation
+        async function addSubject() {
+          confirmAdd('subject', async () => {
+            const subjectName = document.getElementById('subjectName').value;
+            const result = await apiCall('/api/subjects', 'POST', { subjectName });
+            document.getElementById('addSubjectResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchSubjects();
           });
+        }
+
+        async function addClass() {
+          confirmAdd('class', async () => {
+            const body = {
+              grade_level: document.getElementById('gradeLevel').value,
+              section: document.getElementById('section').value,
+              school_year: document.getElementById('schoolYear').value,
+              class_description: document.getElementById('classDescription').value
+            };
+            const result = await apiCall('/api/classes', 'POST', body);
+            document.getElementById('addClassResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchClasses();
+          });
+        }
+
+        async function addTeacher() {
+          confirmAdd('teacher', async () => {
+            const body = {
+              teacherId: document.getElementById('teacherId').value,
+              fname: document.getElementById('fname').value,
+              mname: document.getElementById('mname').value,
+              lname: document.getElementById('lname').value,
+              gender: document.getElementById('gender').value
+            };
+            const result = await apiCall('/api/teachers', 'POST', body);
+            document.getElementById('addTeacherResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchTeachers();
+          });
+        }
+
+        async function addStudent() {
+          confirmAdd('student', async () => {
+            const body = {
+              fname: document.getElementById('studentFname').value,
+              mname: document.getElementById('studentMname').value,
+              lname: document.getElementById('studentLname').value,
+              gender: document.getElementById('studentGender').value,
+              age: parseInt(document.getElementById('studentAge').value)
+            };
+            const result = await apiCall('/api/students', 'POST', body);
+            document.getElementById('addStudentResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchStudents();
+          });
+        }
+
+        // Delete functionality
+        function showDeleteDialog(dialogId) {
+          document.getElementById('overlay').style.display = 'block';
+          document.getElementById(dialogId).style.display = 'block';
+        }
+
+        function closeDeleteDialog(dialogId) {
+          document.getElementById('overlay').style.display = 'none';
+          document.getElementById(dialogId).style.display = 'none';
+        }
+
+        function updateIdField(type) {
+          const select = document.getElementById(type + 'Select');
+          const idField = document.getElementById(type + 'Id');
+          idField.value = select.value;
+        }
+
+        async function deleteSubject() {
+          const subjects = await apiCall('/api/subjects');
+          const select = document.getElementById('subjectSelect');
+          select.innerHTML = '<option value="">Select a subject...</option>' +
+            subjects.data.map(subject => (
+              '<option value="' + subject.subject_id + '">' + 
+              subject.subject_name + ' (ID: ' + subject.subject_id + ')</option>'
+            )).join('');
+          showDeleteDialog('deleteSubjectDialog');
+        }
+
+        async function deleteClass() {
+          const classes = await apiCall('/api/classes');
+          const select = document.getElementById('classSelect');
+          select.innerHTML = '<option value="">Select a class...</option>' +
+            classes.data.map(cls => (
+              '<option value="' + cls.class_id + '">Grade ' + 
+              cls.grade_level + '-' + cls.section + ' (' + cls.school_year + 
+              ') (ID: ' + cls.class_id + ')</option>'
+            )).join('');
+          showDeleteDialog('deleteClassDialog');
+        }
+
+        async function deleteTeacher() {
+          const teachers = await apiCall('/api/teachers');
+          const select = document.getElementById('teacherSelect');
+          select.innerHTML = '<option value="">Select a teacher...</option>' +
+            teachers.data.map(teacher => (
+              '<option value="' + teacher.teacher_id + '">' + 
+              teacher.fname + ' ' + teacher.lname + ' (ID: ' + teacher.teacher_id + ')</option>'
+            )).join('');
+          showDeleteDialog('deleteTeacherDialog');
+        }
+
+        async function deleteStudent() {
+          const students = await apiCall('/api/students');
+          const select = document.getElementById('studentSelect');
+          select.innerHTML = '<option value="">Select a student...</option>' +
+            students.data.map(student => (
+              '<option value="' + student.student_id + '">' + 
+              student.fname + ' ' + student.lname + ' (ID: ' + student.student_id + ')</option>'
+            )).join('');
+          showDeleteDialog('deleteStudentDialog');
+        }
+
+        async function confirmDelete(type) {
+          const idField = document.getElementById(type + 'Id');
+          const select = document.getElementById(type + 'Select');
+          const id = idField.value || select.value;
           
-          // Save Class button handler
-          const saveClassBtn = document.getElementById('saveClassBtn');
-          saveClassBtn.addEventListener('click', async () => {
-            const classId = document.getElementById('classId').value;
-            const gradeLevel = document.getElementById('gradeLevel').value;
-            const section = document.getElementById('section').value;
-            const schoolYear = document.getElementById('classSchoolYear').value;
-            const classDescription = document.getElementById('classDescription').value;
-            
-            // Validate form
-            if (!gradeLevel || !section || !schoolYear) {
-              document.getElementById('classError').textContent = 'Please fill in all required fields';
-              document.getElementById('classError').style.display = 'block';
-              return;
-            }
-            
+          if (!id) {
+            alert('Please select an item or enter an ID to delete');
+            return;
+          }
+
+          if (confirm('Are you sure you want to delete ' + type + ' with ID: ' + id + '?')) {
             try {
-              let url = '/api/classes';
-              let method = 'POST';
-              
-              if (classId) {
-                url = '/api/classes/' + classId;
-                method = 'PATCH';
-              }
-              
-              const response = await fetch(url, {
-                method,
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  grade_level: gradeLevel,
-                  section,
-                  school_year: schoolYear,
-                  class_description: classDescription
-                })
+              const response = await fetch('/api/' + type + 's/' + id, {
+                method: 'DELETE'
               });
+              const result = await response.json();
               
-              if (!response.ok) {
-                throw new Error('Failed to save class');
+              if (response.ok) {
+                alert(result.message || type + ' with ID ' + id + ' deleted successfully');
+                closeDeleteDialog('delete' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog');
+                // Refresh the list
+                window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
+              } else {
+                throw new Error(result.error || 'Failed to delete ' + type + ' with ID ' + id);
               }
-              
-              // Close modal and reload classes
-              $('#classModal').modal('hide');
-              loadClasses();
             } catch (error) {
-              console.error('Error saving class:', error);
-              document.getElementById('classError').textContent = 'Failed to save class. Please try again.';
-              document.getElementById('classError').style.display = 'block';
+              alert(error.message);
             }
-          });
-          
-          // Function to view class details
-          const viewClassDetails = (classId) => {
-            // In a real application, you would fetch and display detailed information
-            window.location.href = '/class-details.html?id=' + classId;
-          };
-          
-          // Function to edit a class
-          const editClass = (cls) => {
-            document.getElementById('classId').value = cls.class_id;
-            document.getElementById('gradeLevel').value = cls.grade_level;
-            document.getElementById('section').value = cls.section;
-            document.getElementById('classSchoolYear').value = cls.school_year;
-            document.getElementById('classDescription').value = cls.class_description || '';
-            document.getElementById('classModalLabel').textContent = 'Edit Class';
-            document.getElementById('classError').style.display = 'none';
-            
-            // Show modal
-            $('#classModal').modal('show');
-          };
-          
-          // Function to delete a class
-          const deleteClass = async (classId) => {
-            if (confirm('Are you sure you want to delete this class? This action cannot be undone.')) {
-              try {
-                const response = await fetch('/api/classes/' + classId, {
-                  method: 'DELETE'
-                });
-                
-                if (!response.ok) {
-                  throw new Error('Failed to delete class');
-                }
-                
-                // Reload classes
-                loadClasses();
-              } catch (error) {
-                console.error('Error deleting class:', error);
-                alert('Failed to delete class. Please try again.');
-              }
-            }
-          };
-          
-          // Add click handlers for navigation
-          document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-              e.preventDefault();
-              
-              // Update active class
-              document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-              e.target.classList.add('active');
-              
-              // Get the tab to show based on the link text
-              const tabText = e.target.textContent.trim();
-              const tabMap = {
-                'Classes': 'classesTab',
-                'Students': 'studentsTab',
-                'Teachers': 'teachersTab',
-                'Subjects': 'subjectsTab',
-                'Grades': 'gradesTab',
-                'School Years': 'schoolYearsTab'
-              };
-              
-              if (tabMap[tabText]) {
-                showTab(tabMap[tabText]);
-              }
-            });
-          });
-          
-          // Show the Classes tab by default and load the data
-          showTab('classesTab');
-        });
+          }
+        }
       </script>
+      <!-- Add delete dialogs -->
+      <div id="overlay" class="overlay"></div>
+      
+      <div id="deleteSubjectDialog" class="delete-dialog">
+        <h3>Delete Subject</h3>
+        <div class="delete-form">
+          <div class="form-group">
+            <label>Select Subject:</label>
+            <select id="subjectSelect" onchange="updateIdField('subject')"></select>
+          </div>
+          <div class="form-group">
+            <label>Or Enter Subject ID:</label>
+            <input type="text" id="subjectId" placeholder="Enter Subject ID">
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeDeleteDialog('deleteSubjectDialog')">Cancel</button>
+          <button class="delete-btn" onclick="confirmDelete('subject')">Delete</button>
+        </div>
+      </div>
+
+      <div id="deleteClassDialog" class="delete-dialog">
+        <h3>Delete Class</h3>
+        <div class="delete-form">
+          <div class="form-group">
+            <label>Select Class:</label>
+            <select id="classSelect" onchange="updateIdField('class')"></select>
+          </div>
+          <div class="form-group">
+            <label>Or Enter Class ID:</label>
+            <input type="text" id="classId" placeholder="Enter Class ID">
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeDeleteDialog('deleteClassDialog')">Cancel</button>
+          <button class="delete-btn" onclick="confirmDelete('class')">Delete</button>
+        </div>
+      </div>
+
+      <div id="deleteTeacherDialog" class="delete-dialog">
+        <h3>Delete Teacher</h3>
+        <div class="delete-form">
+          <div class="form-group">
+            <label>Select Teacher:</label>
+            <select id="teacherSelect" onchange="updateIdField('teacher')"></select>
+          </div>
+          <div class="form-group">
+            <label>Or Enter Teacher ID:</label>
+            <input type="text" id="teacherId" placeholder="Enter Teacher ID">
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeDeleteDialog('deleteTeacherDialog')">Cancel</button>
+          <button class="delete-btn" onclick="confirmDelete('teacher')">Delete</button>
+        </div>
+      </div>
+
+      <div id="deleteStudentDialog" class="delete-dialog">
+        <h3>Delete Student</h3>
+        <div class="delete-form">
+          <div class="form-group">
+            <label>Select Student:</label>
+            <select id="studentSelect" onchange="updateIdField('student')"></select>
+          </div>
+          <div class="form-group">
+            <label>Or Enter Student ID:</label>
+            <input type="text" id="studentId" placeholder="Enter Student ID">
+          </div>
+        </div>
+        <div class="button-group">
+          <button onclick="closeDeleteDialog('deleteStudentDialog')">Cancel</button>
+          <button class="delete-btn" onclick="confirmDelete('student')">Delete</button>
+        </div>
+      </div>
     </body>
     </html>
   `);
