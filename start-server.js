@@ -1738,10 +1738,49 @@ app.get('/', (req, res) => {
         <!-- ... existing school year modal code ... -->
       </div>
       
-      
+      <!-- Class Modal -->
+      <div class="modal fade" id="classModal" tabindex="-1" role="dialog" aria-labelledby="classModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="classModalLabel">Add Class</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form id="classForm">
+                <input type="hidden" id="classId">
+                <div class="form-group">
+                  <label for="gradeLevel">Grade Level</label>
+                  <input type="text" class="form-control" id="gradeLevel" required>
+                </div>
+                <div class="form-group">
+                  <label for="section">Section</label>
+                  <input type="text" class="form-control" id="section" required>
+                </div>
+                <div class="form-group">
+                  <label for="classSchoolYear">School Year</label>
+                  <select class="form-control" id="classSchoolYear" required>
+                    <!-- School years will be loaded dynamically -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="classDescription">Description</label>
+                  <textarea class="form-control" id="classDescription" rows="3"></textarea>
+                </div>
+                <div id="classError" class="alert alert-danger mt-3" style="display: none;"></div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" id="saveClassBtn">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js"></script>
       <script>
         document.addEventListener('DOMContentLoaded', () => {
           // Function to show the selected tab content and hide others
