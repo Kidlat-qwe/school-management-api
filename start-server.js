@@ -1736,46 +1736,7 @@ app.get('/', (req, res) => {
       <div class="modal fade" id="loginModal" tabindex="-1" role="dialog" aria-labelledby="loginModalLabel" aria-hidden="true">
         <!-- ... existing login modal code ... -->
       </div>
-      
-      <!-- School Year Modal -->
-      <div class="modal fade" id="schoolYearModal" tabindex="-1" role="dialog" aria-labelledby="schoolYearModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="schoolYearModalLabel">Add School Year</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-            <div class="modal-body">
-              <form id="schoolYearForm">
-                <input type="hidden" id="schoolYearId">
-                <div class="form-group">
-                  <label for="yearName">Year Name</label>
-                  <input type="text" class="form-control" id="yearName" placeholder="e.g. 2024-2025" required>
-                </div>
-                <div class="form-group">
-                  <label for="startDate">Start Date</label>
-                  <input type="date" class="form-control" id="startDate" required>
-                </div>
-                <div class="form-group">
-                  <label for="endDate">End Date</label>
-                  <input type="date" class="form-control" id="endDate" required>
-                </div>
-                <div class="form-check">
-                  <input type="checkbox" class="form-check-input" id="isCurrent">
-                  <label class="form-check-label" for="isCurrent">Set as Current School Year</label>
-                </div>
-                <div id="schoolYearError" class="alert alert-danger mt-3" style="display: none;"></div>
-              </form>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-              <button type="button" class="btn btn-primary" id="saveSchoolYearBtn">Save</button>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
       <script>
