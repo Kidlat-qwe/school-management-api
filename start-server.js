@@ -1,10 +1,9 @@
 const express = require('express');
-const cors = require('cors');
 const { Pool } = require('pg');
+const cors = require('cors');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
-
 const app = express();
 const port = process.env.PORT || 8000;
 
@@ -24,25 +23,12 @@ const pool = new Pool({
   },
 });
 
+// Test database connection
 pool.connect()
   .then(() => console.log("✅ Connected to PostgreSQL!"))
   .catch(err => console.error("❌ Database connection error:", err));
 
 module.exports = pool;
-
-// Initialize database
-const initDatabase = async () => {
-  try {
-    const initSQL = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf8');
-    await pool.query(initSQL);
-    console.log('✅ Database initialized successfully!');
-  } catch (error) {
-    console.error('❌ Error initializing database:', error);
-  }
-};
-
-// Call this before starting your server
-initDatabase();
 
 // GET endpoint to fetch all subjects
 app.get('/api/subjects', async (req, res) => {
@@ -241,20 +227,21 @@ app.get('/api/school-year', async (req, res) => {
   }
 });
 
-// Get all school years with active status
+// Get school years endpoint
 app.get('/api/school-years', async (req, res) => {
   try {
     const query = `
       SELECT 
+        school_year_id,
         school_year,
         is_active
       FROM school_year
-      ORDER BY 
-        is_active DESC,
-        school_year DESC
+      ORDER BY school_year DESC
     `;
     
+    console.log('Fetching school years...'); // Debug log
     const result = await pool.query(query);
+    console.log('School years found:', result.rows); // Debug log
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching school years:', error);
@@ -266,38 +253,61 @@ app.get('/api/school-years', async (req, res) => {
 app.post('/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    
-    // Query the database to find the user
-    const result = await pool.query(
-      'SELECT * FROM users WHERE username = $1 AND password = $2',
-      [username, password]
+    console.log('Login attempt for username:', username);
+
+    // Updated query to use correct table name 'teacher' instead of 'teachers'
+    const query = `
+      SELECT u.user_id, u.username, u.password, u.user_type,
+             t.teacher_id, t.fname, t.lname, t.mname
+      FROM users u
+      LEFT JOIN teacher t ON u.user_id = t.user_id
+      WHERE u.username = $1
+    `;
+
+    const result = await pool.query(query, [username]);
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+
+    const user = result.rows[0];
+
+    // For testing purposes, temporarily skip password verification
+    // In production, you should properly verify the password
+    // const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = password === user.password; // Temporary direct comparison
+
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+
+    // Create token and send response
+    const token = jwt.sign(
+      { 
+        userId: user.user_id,
+        teacherId: user.teacher_id,
+        userType: user.user_type 
+      },
+      'your-secret-key',
+      { expiresIn: '24h' }
     );
 
-    if (result.rows.length > 0) {
-      const user = result.rows[0];
-      // Send back user data and type
-      res.json({
-        success: true,
-        token: 'dummy-token', // You might want to implement proper JWT tokens
-        userType: user.user_type, // 'admin' or 'teacher'
-        user: {
-          id: user.user_id,
-          username: user.username,
-          name: user.name
-        }
-      });
-    } else {
-      res.status(401).json({ 
-        success: false, 
-        message: 'Invalid username or password' 
-      });
-    }
+    res.json({
+      success: true,
+      token,
+      userType: user.user_type,
+      user: {
+        id: user.teacher_id || user.user_id, // Use teacher_id if available, otherwise use user_id
+        username: user.username,
+        fname: user.fname,
+        mname: user.mname,
+        lname: user.lname
+      }
+    });
+
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
-    });
+    res.status(500).json({ message: 'Server error occurred' });
   }
 });
 
@@ -483,54 +493,76 @@ app.get('/api/classes/:classId', async (req, res) => {
   }
 });
 
-// GET endpoint to fetch academic rankings
+// Get sections for a specific school year and grade level
+app.get('/api/sections/:schoolYear/:gradeLevel', async (req, res) => {
+  try {
+    const { schoolYear, gradeLevel } = req.params;
+    
+    const query = `
+      SELECT DISTINCT section
+      FROM class
+      WHERE school_year = $1 AND grade_level = $2
+      ORDER BY section
+    `;
+    
+    const result = await pool.query(query, [schoolYear, gradeLevel]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching sections:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get academic rankings
 app.get('/api/academic-rankings', async (req, res) => {
   try {
     const { schoolYear, quarter, gradeLevel, section } = req.query;
-
+    
     let query = `
-      WITH student_averages AS (
-        SELECT 
-          s.student_id,
-          s.fname,
-          s.lname,
-          c.grade_level,
-          c.section,
-          ROUND(AVG(sg.grade)::numeric, 2) as average
-        FROM student s
-        JOIN class_student cs ON s.student_id = cs.student_id
-        JOIN class c ON cs.class_id = c.class_id
-        JOIN student_grade sg ON s.student_id = sg.student_id
-        WHERE 
-          c.school_year = $1 
-          AND sg.quarter = $2
+      SELECT 
+        s.student_id,
+        s.fname,
+        s.lname,
+        c.grade_level,
+        c.section,
+        ROUND(AVG(sg.grade)::numeric, 2) as average
+      FROM student s
+      JOIN class_student cs ON s.student_id = cs.student_id
+      JOIN class c ON cs.class_id = c.class_id
+      JOIN student_grade sg ON s.student_id = sg.student_id
+      WHERE c.school_year = $1 
+      AND sg.quarter = $2
     `;
-
-    const queryParams = [schoolYear, quarter];
+    
+    const params = [schoolYear, quarter];
     let paramCount = 2;
 
     if (gradeLevel && gradeLevel !== 'All Grades (Campus-wide)') {
-      queryParams.push(gradeLevel);
-      query += ` AND c.grade_level = $${++paramCount}`;
-    }
+      paramCount++;
+      query += ` AND c.grade_level = $${paramCount}`;
+      params.push(gradeLevel);
 
-    if (section && section !== 'Select Section') {
-      queryParams.push(section);
-      query += ` AND c.section = $${++paramCount}`;
+      if (section && section !== 'Select Section') {
+        paramCount++;
+        query += ` AND c.section = $${paramCount}`;
+        params.push(section);
+      }
     }
 
     query += `
-        GROUP BY s.student_id, s.fname, s.lname, c.grade_level, c.section
-      )
-      SELECT *
-      FROM student_averages
+      GROUP BY 
+        s.student_id,
+        s.fname,
+        s.lname,
+        c.grade_level,
+        c.section
       ORDER BY average DESC
     `;
 
-    const result = await pool.query(query, queryParams);
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (error) {
-    console.error('Error fetching academic rankings:', error);
+    console.error('Error fetching rankings:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -704,18 +736,19 @@ app.put('/api/subjects/:id', async (req, res) => {
   }
 });
 
-// Get subjects for a specific class
+// Get subjects assigned to a class
 app.get('/api/class-subjects/:classId', async (req, res) => {
   try {
     const { classId } = req.params;
-    const query = `
+    
+    const result = await pool.query(`
       SELECT DISTINCT s.subject_id, s.subject_name
       FROM subject s
       JOIN class_subject cs ON s.subject_id = cs.subject_id
       WHERE cs.class_id = $1
       ORDER BY s.subject_name
-    `;
-    const result = await pool.query(query, [classId]);
+    `, [classId]);
+
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching class subjects:', error);
@@ -723,29 +756,81 @@ app.get('/api/class-subjects/:classId', async (req, res) => {
   }
 });
 
-// Get student grades for a specific class
-app.get('/api/student-grades/:classId', async (req, res) => {
+// Get students for a specific class
+app.get('/api/class-students/:classId', async (req, res) => {
   try {
     const { classId } = req.params;
+    
     const query = `
       SELECT 
         s.student_id,
         s.fname,
-        s.mname,
         s.lname,
-        json_object_agg(sg.subject_id, sg.grade) as grades
+        s.mname,
+        cs.class_id,
+        COALESCE(
+          json_object_agg(
+            sub.subject_name,
+            sg.grade
+          ) FILTER (WHERE sub.subject_name IS NOT NULL),
+          '{}'::json
+        ) as grades
       FROM student s
       JOIN class_student cs ON s.student_id = cs.student_id
-      LEFT JOIN student_grade sg ON s.student_id = sg.student_id AND cs.class_id = sg.class_id
+      LEFT JOIN student_grade sg ON s.student_id = sg.student_id 
+        AND sg.class_id = cs.class_id
+      LEFT JOIN subject sub ON sg.subject_id = sub.subject_id
       WHERE cs.class_id = $1
-      GROUP BY s.student_id, s.fname, s.mname, s.lname
+      GROUP BY 
+        s.student_id, 
+        s.fname, 
+        s.lname, 
+        s.mname,
+        cs.class_id
       ORDER BY s.lname, s.fname
     `;
+    
     const result = await pool.query(query, [classId]);
+    console.log('Query result:', result.rows); // Debug log
+    
     res.json(result.rows);
   } catch (error) {
-    console.error('Error fetching student grades:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error fetching class students:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+});
+
+// Get subjects for a specific class
+app.get('/api/class-subjects/:classId', async (req, res) => {
+  try {
+    const { classId } = req.params;
+    
+    const query = `
+      SELECT DISTINCT 
+        s.subject_id,
+        s.subject_name
+      FROM subject s
+      JOIN class_subject cs ON s.subject_id = cs.subject_id
+      WHERE cs.class_id = $1
+      ORDER BY s.subject_name
+    `;
+    
+    const result = await pool.query(query, [classId]);
+    
+    if (result.rows.length === 0) {
+      return res.json([]); // Return empty array if no subjects found
+    }
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching class subjects:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 });
 
@@ -814,96 +899,108 @@ app.get('/api/get-student-id/:userId', async (req, res) => {
 });
 
 // Update the student grades endpoint
-app.get('/api/student-grades/:studentId/:schoolYear', async (req, res) => {
+app.get('/api/student-grades/:userId/:schoolYearId', async (req, res) => {
   try {
-    const { studentId, schoolYear } = req.params;
+    const { userId, schoolYearId } = req.params;
+    console.log('Fetching grades for user:', userId, 'school year:', schoolYearId);
 
-    // Check if student has a class assigned
-    const classQuery = `
-      SELECT cs.class_id 
-      FROM class_student cs
-      JOIN class c ON cs.class_id = c.class_id
-      WHERE cs.student_id = $1 AND c.school_year = $2
-    `;
-    
-    const classResult = await pool.query(classQuery, [studentId, schoolYear]);
-    
-    if (classResult.rows.length === 0) {
-      return res.status(404).json({ 
-        message: 'No class assigned for this school year' 
-      });
-    }
-
-    const classId = classResult.rows[0].class_id;
-
-    // Check if class has subjects assigned
-    const subjectQuery = `
-      SELECT COUNT(*) 
-      FROM class_subject 
-      WHERE class_id = $1
-    `;
-    
-    const subjectResult = await pool.query(subjectQuery, [classId]);
-    
-    if (parseInt(subjectResult.rows[0].count) === 0) {
-      return res.status(404).json({ 
-        message: 'No subjects assigned to your class yet' 
-      });
-    }
-
-    // Rest of the grades query remains the same...
-
-    const query = `
+    // First get student info and their class
+    const studentQuery = `
       SELECT 
+        s.student_id, 
+        s.fname, 
+        s.mname, 
+        s.lname,
+        c.grade_level, 
+        c.section,
+        c.class_id
+      FROM student s
+      JOIN class_student cs ON s.student_id = cs.student_id
+      JOIN class c ON cs.class_id = c.class_id
+      JOIN school_year sy ON c.school_year = sy.school_year
+      WHERE s.user_id = $1 AND sy.school_year_id = $2
+    `;
+
+    const studentResult = await pool.query(studentQuery, [userId, schoolYearId]);
+    
+    if (studentResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found or not enrolled for this school year' });
+    }
+
+    const studentInfo = studentResult.rows[0];
+
+    // Get grades for all subjects
+    const gradesQuery = `
+      SELECT 
+        s.subject_id,
         s.subject_name,
         sg.quarter,
-        sg.grade,
-        CONCAT(t.fname, ' ', t.lname) as teacher_name,
-        c.grade_level,
-        c.section
-      FROM student_grade sg
-      JOIN subject s ON sg.subject_id = s.subject_id
-      JOIN teacher t ON sg.teacher_id = t.teacher_id
-      JOIN class c ON sg.class_id = c.class_id
-      WHERE sg.student_id = $1 
-      AND c.school_year = $2
+        sg.grade
+      FROM class_subject cs
+      JOIN subject s ON cs.subject_id = s.subject_id
+      LEFT JOIN student_grade sg ON 
+        s.subject_id = sg.subject_id AND 
+        sg.student_id = $1 AND
+        sg.class_id = $2
+      WHERE cs.class_id = $2
       ORDER BY s.subject_name, sg.quarter
     `;
 
-    const result = await pool.query(query, [studentId, schoolYear]);
-    
-    // Transform the data to group by subject
-    const groupedGrades = result.rows.reduce((acc, row) => {
-      const subject = row.subject_name;
-      if (!acc[subject]) {
-        acc[subject] = {
-          subject: subject,
-          teacher: row.teacher_name,
-          q1: null,
-          q2: null,
-          q3: null,
-          q4: null,
-          final: null,
-          remarks: 'Pending'
-        };
-      }
-      acc[subject][`q${row.quarter}`] = parseFloat(row.grade);
-      
-      // Calculate final grade if all quarters are present
-      if (acc[subject].q1 && acc[subject].q2 && acc[subject].q3 && acc[subject].q4) {
-        acc[subject].final = ((acc[subject].q1 + acc[subject].q2 + acc[subject].q3 + acc[subject].q4) / 4).toFixed(2);
-        acc[subject].remarks = parseFloat(acc[subject].final) >= 75 ? 'Passed' : 'Failed';
-      }
-      
-      return acc;
-    }, {});
+    const gradesResult = await pool.query(gradesQuery, [studentInfo.student_id, studentInfo.class_id]);
 
-    res.json(Object.values(groupedGrades));
+    // Process grades into the required format
+    const gradesMap = new Map();
+    gradesResult.rows.forEach(row => {
+      if (!gradesMap.has(row.subject_id)) {
+        gradesMap.set(row.subject_id, {
+          subject_id: row.subject_id,
+          subject_name: row.subject_name,
+          quarter1: null,
+          quarter2: null,
+          quarter3: null,
+          quarter4: null,
+          final_grade: null
+        });
+      }
+      
+      if (row.quarter && row.grade !== null) {
+        const subject = gradesMap.get(row.subject_id);
+        subject[`quarter${row.quarter}`] = parseFloat(row.grade);
+        
+        // Calculate final grade if all quarters are present
+        if (subject.quarter1 !== null && 
+            subject.quarter2 !== null && 
+            subject.quarter3 !== null && 
+            subject.quarter4 !== null) {
+          subject.final_grade = ((subject.quarter1 + subject.quarter2 + subject.quarter3 + subject.quarter4) / 4).toFixed(2);
+        }
+      }
+    });
+
+    const grades = Array.from(gradesMap.values());
+
+    // Calculate overall average from final grades
+    const finalGrades = grades
+      .map(g => g.final_grade)
+      .filter(g => g !== null)
+      .map(g => parseFloat(g));
+    
+    const average = finalGrades.length > 0
+      ? (finalGrades.reduce((a, b) => a + b, 0) / finalGrades.length).toFixed(2)
+      : null;
+
+    // Send response
+    res.json({
+      ...studentInfo,
+      grades,
+      average
+    });
+
   } catch (error) {
     console.error('Error fetching student grades:', error);
     res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message 
+      error: 'Failed to fetch grades',
+      details: error.message
     });
   }
 });
@@ -1056,815 +1153,324 @@ app.get('/api/active-school-year', async (req, res) => {
   }
 });
 
-// DELETE endpoint for subjects
-app.delete('/api/subjects/:id', async (req, res) => {
+// Get classes by school year (string format: "2023-2024")
+app.get('/api/classes-by-year/:schoolYear', async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await pool.query(
-      'DELETE FROM subject WHERE subject_id = $1 RETURNING *',
-      [id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Subject not found' });
-    }
-    res.json({ message: 'Subject deleted successfully' });
+    const { schoolYear } = req.params;
+    
+    const query = `
+      SELECT 
+        c.class_id,
+        c.grade_level,
+        c.section,
+        c.school_year,
+        c.class_description
+      FROM class c
+      WHERE c.school_year = $1
+      ORDER BY 
+        CASE 
+          WHEN c.grade_level ~ '^[0-9]+$' THEN CAST(c.grade_level AS INTEGER)
+          ELSE 999
+        END,
+        c.section;
+    `;
+    
+    console.log('Fetching classes for school year:', schoolYear);
+    const result = await pool.query(query, [schoolYear]);
+    console.log('Classes found:', result.rows);
+    
+    res.json(result.rows);
   } catch (error) {
-    console.error('Error deleting subject:', error);
+    console.error('Error fetching classes:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Get classes by school year ID (numeric format: 1, 2, etc.)
+app.get('/api/classes/:schoolYearId', async (req, res) => {
+  try {
+    const { schoolYearId } = req.params;
+    
+    const query = `
+      SELECT 
+        c.class_id,
+        c.grade_level,
+        c.section,
+        c.school_year,
+        COALESCE(c.class_description, 
+          CONCAT('Grade ', c.grade_level, ' - Section ', c.section)
+        ) as class_description
+      FROM class c
+      JOIN school_year sy ON c.school_year = sy.school_year
+      WHERE sy.school_year_id = $1
+      ORDER BY 
+        CASE 
+          WHEN c.grade_level ~ '^[0-9]+$' THEN CAST(c.grade_level AS INTEGER)
+          ELSE 999
+        END,
+        c.section;
+    `;
+    
+    console.log('Executing query for school year ID:', schoolYearId);
+    const result = await pool.query(query, [schoolYearId]);
+    console.log('Query result:', result.rows);
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching classes:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// DELETE endpoint for classes
-app.delete('/api/classes/:id', async (req, res) => {
+// Fix the Academic Rankings classes endpoint
+app.get('/api/academic/classes/:schoolYearId', async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await pool.query(
-      'DELETE FROM class WHERE class_id = $1 RETURNING *',
-      [id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Class not found' });
-    }
-    res.json({ message: 'Class deleted successfully' });
+    const { schoolYearId } = req.params;
+    
+    const query = `
+      SELECT 
+        c.class_id,
+        c.grade_level,
+        c.section,
+        c.school_year,
+        CONCAT('Grade ', c.grade_level, ' - Section ', c.section) as class_description,
+        CASE 
+          WHEN c.grade_level ~ '^[0-9]+$' THEN CAST(c.grade_level AS INTEGER)
+          ELSE 999
+        END as grade_order
+      FROM class c
+      JOIN school_year sy ON c.school_year = sy.school_year
+      WHERE sy.school_year_id = $1
+      ORDER BY grade_order, c.section;
+    `;
+    
+    console.log('Fetching academic classes for year ID:', schoolYearId);
+    const result = await pool.query(query, [schoolYearId]);
+    
+    // Remove the grade_order field from the response
+    const formattedResults = result.rows.map(({ grade_order, ...rest }) => rest);
+    
+    res.json(formattedResults);
   } catch (error) {
-    console.error('Error deleting class:', error);
+    console.error('Error fetching academic classes:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// DELETE endpoint for teachers
-app.delete('/api/teachers/:id', async (req, res) => {
+// New endpoint for Student Grades classes
+app.get('/api/grades/classes/:schoolYear', async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await pool.query(
-      'DELETE FROM teacher WHERE teacher_id = $1 RETURNING *',
-      [id]
-    );
+    const { schoolYear } = req.params;
+    
+    const query = `
+      SELECT 
+        c.class_id,
+        c.grade_level,
+        c.section,
+        c.school_year,
+        c.class_description
+      FROM class c
+      WHERE c.school_year = $1
+      ORDER BY 
+        CASE 
+          WHEN c.grade_level ~ '^[0-9]+$' THEN CAST(c.grade_level AS INTEGER)
+          ELSE 999
+        END,
+        c.section;
+    `;
+    
+    console.log('Fetching grade classes for year:', schoolYear);
+    const result = await pool.query(query, [schoolYear]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching grade classes:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Modify the rankings endpoint with better error handling
+app.get('/api/academic/rankings', async (req, res) => {
+  try {
+    const { schoolYear, classId, quarter } = req.query;
+    
+    if (!schoolYear) {
+      return res.status(400).json({ 
+        error: 'Missing required parameters' 
+      });
+    }
+
+    let query;
+    const params = [schoolYear];
+
+    if (quarter === 'final') {
+      query = `
+        SELECT 
+          s.student_id,
+          s.fname,
+          s.mname,
+          s.lname,
+          c.grade_level,
+          c.section,
+          ROUND(AVG(CASE WHEN sg.quarter = 1 THEN sg.grade END)::numeric, 2) as q1_average,
+          ROUND(AVG(CASE WHEN sg.quarter = 2 THEN sg.grade END)::numeric, 2) as q2_average,
+          ROUND(AVG(CASE WHEN sg.quarter = 3 THEN sg.grade END)::numeric, 2) as q3_average,
+          ROUND(AVG(CASE WHEN sg.quarter = 4 THEN sg.grade END)::numeric, 2) as q4_average,
+          ROUND(AVG(sg.grade)::numeric, 2) as average_grade
+        FROM student s
+        JOIN class_student cs ON s.student_id = cs.student_id
+        JOIN class c ON cs.class_id = c.class_id
+        LEFT JOIN student_grade sg ON s.student_id = sg.student_id
+        WHERE c.school_year = (
+          SELECT school_year FROM school_year WHERE school_year_id = $1
+        )
+        ${classId && classId !== '0' ? 'AND c.class_id = $2' : ''}
+        GROUP BY 
+          s.student_id,
+          s.fname,
+          s.mname,
+          s.lname,
+          c.grade_level,
+          c.section
+        ORDER BY 
+          average_grade DESC NULLS LAST,
+          s.lname,
+          s.fname
+      `;
+    } else {
+      query = `
+        SELECT 
+          s.student_id,
+          s.fname,
+          s.mname,
+          s.lname,
+          c.grade_level,
+          c.section,
+          ROUND(AVG(sg.grade)::numeric, 2) as average_grade
+        FROM student s
+        JOIN class_student cs ON s.student_id = cs.student_id
+        JOIN class c ON cs.class_id = c.class_id
+        LEFT JOIN student_grade sg ON s.student_id = sg.student_id
+        WHERE sg.quarter = $2
+        AND c.school_year = (
+          SELECT school_year FROM school_year WHERE school_year_id = $1
+        )
+        ${classId && classId !== '0' ? 'AND c.class_id = $3' : ''}
+        GROUP BY 
+          s.student_id,
+          s.fname,
+          s.mname,
+          s.lname,
+          c.grade_level,
+          c.section
+        ORDER BY 
+          average_grade DESC NULLS LAST,
+          s.lname,
+          s.fname
+      `;
+      params.push(quarter);
+    }
+
+    if (classId && classId !== '0') {
+      params.push(classId);
+    }
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error in rankings endpoint:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+// Fix the endpoint to use correct table names
+app.get('/api/teacher-classes/:teacherId', async (req, res) => {
+    try {
+        const { teacherId } = req.params;
+        const query = `
+            SELECT 
+                c.grade_level,
+                c.section,
+                s.subject_name as subject
+            FROM class_subject cs
+            JOIN class c ON cs.class_id = c.class_id
+            JOIN subject s ON cs.subject_id = s.subject_id
+            WHERE cs.teacher_id = $1
+        `;
+        
+        const result = await pool.query(query, [teacherId]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching teacher classes:', error);
+        res.status(500).json({ error: 'Failed to fetch classes' });
+    }
+});
+
+// Add this new endpoint to get a single teacher's information
+app.get('/api/teachers/:teacherId', async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    console.log('Fetching teacher with ID:', teacherId); // Debug log
+    
+    const query = `
+      SELECT teacher_id, fname, mname, lname, gender, status
+      FROM teacher
+      WHERE teacher_id = $1
+    `;
+    
+    const result = await pool.query(query, [teacherId]);
+    console.log('Query result:', result.rows); // Debug log
+    
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Teacher not found' });
     }
-    res.json({ message: 'Teacher deleted successfully' });
+    
+    res.json(result.rows[0]);
   } catch (error) {
-    console.error('Error deleting teacher:', error);
+    console.error('Error fetching teacher:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// DELETE endpoint for students
-app.delete('/api/students/:id', async (req, res) => {
+// Get classes for a specific teacher
+app.get('/api/teacher-classes/:teacherId', async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await pool.query(
-      'DELETE FROM student WHERE student_id = $1 RETURNING *',
-      [id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-    res.json({ message: 'Student deleted successfully' });
+    const { teacherId } = req.params;
+    console.log('Fetching classes for teacher ID:', teacherId); // Debug log
+    
+    const query = `
+      SELECT 
+        c.grade_level,
+        c.section,
+        s.subject_name as subject
+      FROM class_subject cs
+      JOIN class c ON cs.class_id = c.class_id
+      JOIN subject s ON cs.subject_id = s.subject_id
+      WHERE cs.teacher_id = $1
+    `;
+    
+    const result = await pool.query(query, [teacherId]);
+    console.log('Classes query result:', result.rows); // Debug log
+    
+    res.json(result.rows);
   } catch (error) {
-    console.error('Error deleting student:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error fetching teacher classes:', error);
+    res.status(500).json({ error: 'Failed to fetch classes' });
   }
 });
 
-//THE API ENDPOINTS FRONTEND
-app.get('/', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>School DB API v1.0</title>
-      <style>
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          max-width: 1200px;
-          margin: 20px auto;
-          padding: 0 20px;
-          line-height: 1.4;
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
-        }
-        h1 {
-          color: #2c3e50;
-          grid-column: 1 / -1;
-          margin: 0 0 20px 0;
-          border-bottom: 2px solid #eee;
-          padding-bottom: 10px;
-        }
-        .section {
-          background: #f8f9fa;
-          padding: 15px;
-          border-radius: 8px;
-        }
-        h2 {
-          color: #2980b9;
-          margin: 0 0 15px 0;
-          font-size: 1.2em;
-        }
-        .endpoint {
-          margin: 8px 0;
-          font-size: 0.9em;
-        }
-        .get .method { color: #27ae60; }
-        .post .method { color: #e67e22; }
-        .put .method { color: #2980b9; }
-        .delete .method { color: #c0392b; }
-        .method {
-          display: inline-block;
-          font-weight: bold;
-          width: 45px;
-          font-size: 0.9em;
-        }
-        .path {
-          font-family: monospace;
-          background: #fff;
-          padding: 2px 4px;
-          border-radius: 3px;
-          font-size: 0.9em;
-        }
-        .form-group {
-          margin: 10px 0;
-        }
-        input, button {
-          margin: 5px 0;
-          padding: 4px 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-        }
-        button {
-          background: #3498db;
-          color: white;
-          border: none;
-          cursor: pointer;
-        }
-        button:hover {
-          background: #2980b9;
-        }
-        .response {
-          margin-top: 10px;
-          padding: 8px;
-          background: #fff;
-          border-radius: 4px;
-          font-family: monospace;
-          font-size: 0.8em;
-          word-break: break-all;
-          display: none;
-          max-height: 300px;
-          overflow-y: auto;
-          border: 1px solid #eee;
-        }
-        
-        .response::-webkit-scrollbar {
-          width: 8px;
-        }
-        
-        .response::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 4px;
-        }
-        
-        .response::-webkit-scrollbar-thumb {
-          background: #888;
-          border-radius: 4px;
-        }
-        
-        .response::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
-        
-        .response pre {
-          margin: 0;
-          padding-right: 10px;
-        }
-        
-        .button-group {
-          display: flex;
-          gap: 5px;
-        }
-        
-        .close-btn {
-          background: #e74c3c;
-        }
-        
-        .close-btn:hover {
-          background: #c0392b;
-        }
-        
-        .form-group input {
-          width: calc(100% - 16px);
-          margin: 4px 0;
-        }
-        
-        .form-row {
-          display: flex;
-          gap: 10px;
-        }
-        
-        .form-row input {
-          flex: 1;
-        }
-        .delete-btn {
-          background: #e74c3c;
-          color: white;
-          border: none;
-          padding: 4px 8px;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-        .delete-btn:hover {
-          background: #c0392b;
-        }
-        /* Add styles for the delete dialog */
-        .delete-dialog {
-          display: none;
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: white;
-          padding: 20px;
-          border-radius: 8px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-          z-index: 1000;
-        }
-        .delete-dialog h3 {
-          margin-top: 0;
-        }
-        .delete-dialog select {
-          width: 100%;
-          margin: 10px 0;
-          padding: 5px;
-        }
-        .delete-dialog .button-group {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-          margin-top: 15px;
-        }
-        .overlay {
-          display: none;
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.5);
-          z-index: 999;
-        }
-        .delete-form {
-          margin: 15px 0;
-        }
-        .delete-form .form-group {
-          margin: 10px 0;
-        }
-        .delete-form label {
-          display: block;
-          margin-bottom: 5px;
-          font-weight: bold;
-        }
-        .delete-form select,
-        .delete-form input {
-          width: 100%;
-          padding: 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          margin-top: 5px;
-        }
-      </style>
-    </head>
-    <body>
-      <h1>School DB API v1.0</h1>
-
-      <div class="section">
-        <h2>Subjects</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/subjects</span>
-          <div class="button-group">
-            <button onclick="fetchSubjects()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('subjectsResponse')">Close</button>
-          </div>
-          <div id="subjectsResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/subjects</span>
-          <div class="form-group">
-            <input type="text" id="subjectName" placeholder="Subject Name">
-            <div class="button-group">
-              <button onclick="addSubject()">Add Subject</button>
-              <button class="delete-btn" onclick="deleteSubject()">Delete Subject</button>
-            </div>
-          </div>
-          <div id="addSubjectResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Classes</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/classes</span>
-          <div class="button-group">
-            <button onclick="fetchClasses()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('classesResponse')">Close</button>
-          </div>
-          <div id="classesResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/classes</span>
-          <div class="form-group">
-            <input type="text" id="gradeLevel" placeholder="Grade Level">
-            <input type="text" id="section" placeholder="Section">
-            <input type="text" id="schoolYear" placeholder="School Year">
-            <input type="text" id="classDescription" placeholder="Description">
-            <div class="button-group">
-              <button onclick="addClass()">Add Class</button>
-              <button class="delete-btn" onclick="deleteClass()">Delete Class</button>
-            </div>
-          </div>
-          <div id="addClassResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Teachers</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/teachers</span>
-          <div class="button-group">
-            <button onclick="fetchTeachers()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('teachersResponse')">Close</button>
-          </div>
-          <div id="teachersResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/teachers</span>
-          <div class="form-group">
-            <input type="text" id="teacherId" placeholder="Teacher ID">
-            <input type="text" id="fname" placeholder="First Name">
-            <input type="text" id="mname" placeholder="Middle Name">
-            <input type="text" id="lname" placeholder="Last Name">
-            <input type="text" id="gender" placeholder="Gender">
-            <div class="button-group">
-              <button onclick="addTeacher()">Add Teacher</button>
-              <button class="delete-btn" onclick="deleteTeacher()">Delete Teacher</button>
-            </div>
-          </div>
-          <div id="addTeacherResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Students</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/students</span>
-          <div class="button-group">
-            <button onclick="fetchStudents()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('studentsResponse')">Close</button>
-          </div>
-          <div id="studentsResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/students</span>
-          <div class="form-group">
-            <div class="form-row">
-              <input type="text" id="studentFname" placeholder="First Name">
-              <input type="text" id="studentMname" placeholder="Middle Name">
-              <input type="text" id="studentLname" placeholder="Last Name">
-            </div>
-            <div class="form-row">
-              <input type="text" id="studentGender" placeholder="Gender">
-              <input type="number" id="studentAge" placeholder="Age">
-            </div>
-            <div class="button-group">
-              <button onclick="addStudent()">Add Student</button>
-              <button class="delete-btn" onclick="deleteStudent()">Delete Student</button>
-            </div>
-          </div>
-          <div id="addStudentResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>School Year</h2>
-        <div class="endpoint get">
-          <span class="method">GET</span>
-          <span class="path">/api/school-years</span>
-          <div class="button-group">
-            <button onclick="fetchSchoolYears()">Try it</button>
-            <button class="close-btn" onclick="toggleResponse('schoolYearsResponse')">Close</button>
-          </div>
-          <div id="schoolYearsResponse" class="response"></div>
-        </div>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/api/school-years</span>
-          <div class="form-group">
-            <input type="text" id="schoolYear" placeholder="School Year (e.g., 2023-2024)">
-            <div class="form-row">
-              <button onclick="addSchoolYear()">Add School Year</button>
-            </div>
-          </div>
-          <div id="addSchoolYearResponse" class="response"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Authentication</h2>
-        <div class="endpoint post">
-          <span class="method">POST</span>
-          <span class="path">/auth/login</span>
-        </div>
-      </div>
-
-      <script>
-        // Utility function to handle API calls
-        async function apiCall(endpoint, method = 'GET', body = null) {
-          try {
-            const response = await fetch(endpoint, {
-              method,
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: body ? JSON.stringify(body) : null
-            });
-            const data = await response.json();
-            return { success: true, data };
-          } catch (error) {
-            return { success: false, error: error.message };
-          }
-        }
-
-        // Add toggle function
-        function toggleResponse(elementId) {
-          const element = document.getElementById(elementId);
-          if (element.style.display === 'none' || !element.style.display) {
-            element.style.display = 'block';
-          } else {
-            element.style.display = 'none';
-          }
-        }
-
-        // Subjects
-        async function fetchSubjects() {
-          const responseElement = document.getElementById('subjectsResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/subjects');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        async function addSubject() {
-          const subjectName = document.getElementById('subjectName').value;
-          const responseElement = document.getElementById('addSubjectResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/subjects', 'POST', { subjectName });
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        // Classes
-        async function fetchClasses() {
-          const responseElement = document.getElementById('classesResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/classes');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        async function addClass() {
-          const body = {
-            grade_level: document.getElementById('gradeLevel').value,
-            section: document.getElementById('section').value,
-            school_year: document.getElementById('schoolYear').value,
-            class_description: document.getElementById('classDescription').value
-          };
-          const result = await apiCall('/api/classes', 'POST', body);
-          document.getElementById('addClassResponse').innerHTML = 
-            '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        // Teachers
-        async function fetchTeachers() {
-          const responseElement = document.getElementById('teachersResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/teachers');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        async function addTeacher() {
-          const body = {
-            teacherId: document.getElementById('teacherId').value,
-            fname: document.getElementById('fname').value,
-            mname: document.getElementById('mname').value,
-            lname: document.getElementById('lname').value,
-            gender: document.getElementById('gender').value
-          };
-          const result = await apiCall('/api/teachers', 'POST', body);
-          document.getElementById('addTeacherResponse').innerHTML = 
-            '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        // Students
-        async function fetchStudents() {
-          const responseElement = document.getElementById('studentsResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/students');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        async function addStudent() {
-          const body = {
-            fname: document.getElementById('studentFname').value,
-            mname: document.getElementById('studentMname').value,
-            lname: document.getElementById('studentLname').value,
-            gender: document.getElementById('studentGender').value,
-            age: parseInt(document.getElementById('studentAge').value)
-          };
-          
-          const responseElement = document.getElementById('addStudentResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/students', 'POST', body);
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        // School Years
-        async function fetchSchoolYears() {
-          const responseElement = document.getElementById('schoolYearsResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/school-years');
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        async function addSchoolYear() {
-          const body = {
-            school_year: document.getElementById('schoolYear').value,
-            is_active: false // Default to inactive when creating
-          };
-          
-          const responseElement = document.getElementById('addSchoolYearResponse');
-          responseElement.style.display = 'block';
-          const result = await apiCall('/api/school-years', 'POST', body);
-          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-        }
-
-        // Confirmation dialog for adding records
-        async function confirmAdd(type, callback) {
-          if (confirm('Are you sure you want to add this ' + type + '?')) {
-            await callback();
-          }
-        }
-
-        // Confirmation dialog for deleting records
-        async function confirmDelete(type, id) {
-          if (confirm('Are you sure you want to delete this ' + type + '?')) {
-            try {
-              const response = await fetch('/api/' + type + 's/' + id, {
-                method: 'DELETE',
-              });
-              const result = await response.json();
-              alert(result.message);
-              // Refresh the list after deletion
-              window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
-            } catch (error) {
-              console.error('Error:', error);
-              alert('Failed to delete ' + type);
-            }
-          }
-        }
-
-        // Update the add functions to use confirmation
-        async function addSubject() {
-          confirmAdd('subject', async () => {
-            const subjectName = document.getElementById('subjectName').value;
-            const result = await apiCall('/api/subjects', 'POST', { subjectName });
-            document.getElementById('addSubjectResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchSubjects();
-          });
-        }
-
-        async function addClass() {
-          confirmAdd('class', async () => {
-            const body = {
-              grade_level: document.getElementById('gradeLevel').value,
-              section: document.getElementById('section').value,
-              school_year: document.getElementById('schoolYear').value,
-              class_description: document.getElementById('classDescription').value
-            };
-            const result = await apiCall('/api/classes', 'POST', body);
-            document.getElementById('addClassResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchClasses();
-          });
-        }
-
-        async function addTeacher() {
-          confirmAdd('teacher', async () => {
-            const body = {
-              teacherId: document.getElementById('teacherId').value,
-              fname: document.getElementById('fname').value,
-              mname: document.getElementById('mname').value,
-              lname: document.getElementById('lname').value,
-              gender: document.getElementById('gender').value
-            };
-            const result = await apiCall('/api/teachers', 'POST', body);
-            document.getElementById('addTeacherResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchTeachers();
-          });
-        }
-
-        async function addStudent() {
-          confirmAdd('student', async () => {
-            const body = {
-              fname: document.getElementById('studentFname').value,
-              mname: document.getElementById('studentMname').value,
-              lname: document.getElementById('studentLname').value,
-              gender: document.getElementById('studentGender').value,
-              age: parseInt(document.getElementById('studentAge').value)
-            };
-            const result = await apiCall('/api/students', 'POST', body);
-            document.getElementById('addStudentResponse').innerHTML = 
-              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-            fetchStudents();
-          });
-        }
-
-        // Delete functionality
-        function showDeleteDialog(dialogId) {
-          document.getElementById('overlay').style.display = 'block';
-          document.getElementById(dialogId).style.display = 'block';
-        }
-
-        function closeDeleteDialog(dialogId) {
-          document.getElementById('overlay').style.display = 'none';
-          document.getElementById(dialogId).style.display = 'none';
-        }
-
-        function updateIdField(type) {
-          const select = document.getElementById(type + 'Select');
-          const idField = document.getElementById(type + 'Id');
-          idField.value = select.value;
-        }
-
-        async function deleteSubject() {
-          const subjects = await apiCall('/api/subjects');
-          const select = document.getElementById('subjectSelect');
-          select.innerHTML = '<option value="">Select a subject...</option>' +
-            subjects.data.map(subject => (
-              '<option value="' + subject.subject_id + '">' + 
-              subject.subject_name + ' (ID: ' + subject.subject_id + ')</option>'
-            )).join('');
-          showDeleteDialog('deleteSubjectDialog');
-        }
-
-        async function deleteClass() {
-          const classes = await apiCall('/api/classes');
-          const select = document.getElementById('classSelect');
-          select.innerHTML = '<option value="">Select a class...</option>' +
-            classes.data.map(cls => (
-              '<option value="' + cls.class_id + '">Grade ' + 
-              cls.grade_level + '-' + cls.section + ' (' + cls.school_year + 
-              ') (ID: ' + cls.class_id + ')</option>'
-            )).join('');
-          showDeleteDialog('deleteClassDialog');
-        }
-
-        async function deleteTeacher() {
-          const teachers = await apiCall('/api/teachers');
-          const select = document.getElementById('teacherSelect');
-          select.innerHTML = '<option value="">Select a teacher...</option>' +
-            teachers.data.map(teacher => (
-              '<option value="' + teacher.teacher_id + '">' + 
-              teacher.fname + ' ' + teacher.lname + ' (ID: ' + teacher.teacher_id + ')</option>'
-            )).join('');
-          showDeleteDialog('deleteTeacherDialog');
-        }
-
-        async function deleteStudent() {
-          const students = await apiCall('/api/students');
-          const select = document.getElementById('studentSelect');
-          select.innerHTML = '<option value="">Select a student...</option>' +
-            students.data.map(student => (
-              '<option value="' + student.student_id + '">' + 
-              student.fname + ' ' + student.lname + ' (ID: ' + student.student_id + ')</option>'
-            )).join('');
-          showDeleteDialog('deleteStudentDialog');
-        }
-
-        async function confirmDelete(type) {
-          const idField = document.getElementById(type + 'Id');
-          const select = document.getElementById(type + 'Select');
-          const id = idField.value || select.value;
-          
-          if (!id) {
-            alert('Please select an item or enter an ID to delete');
-            return;
-          }
-
-          if (confirm('Are you sure you want to delete ' + type + ' with ID: ' + id + '?')) {
-            try {
-              const response = await fetch('/api/' + type + 's/' + id, {
-                method: 'DELETE'
-              });
-              const result = await response.json();
-              
-              if (response.ok) {
-                alert(result.message || type + ' with ID ' + id + ' deleted successfully');
-                closeDeleteDialog('delete' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog');
-                // Refresh the list
-                window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
-              } else {
-                throw new Error(result.error || 'Failed to delete ' + type + ' with ID ' + id);
-              }
-            } catch (error) {
-              alert(error.message);
-            }
-          }
-        }
-      </script>
-      <!-- Add delete dialogs -->
-      <div id="overlay" class="overlay"></div>
-      
-      <div id="deleteSubjectDialog" class="delete-dialog">
-        <h3>Delete Subject</h3>
-        <div class="delete-form">
-          <div class="form-group">
-            <label>Select Subject:</label>
-            <select id="subjectSelect" onchange="updateIdField('subject')"></select>
-          </div>
-          <div class="form-group">
-            <label>Or Enter Subject ID:</label>
-            <input type="text" id="subjectId" placeholder="Enter Subject ID">
-          </div>
-        </div>
-        <div class="button-group">
-          <button onclick="closeDeleteDialog('deleteSubjectDialog')">Cancel</button>
-          <button class="delete-btn" onclick="confirmDelete('subject')">Delete</button>
-        </div>
-      </div>
-
-      <div id="deleteClassDialog" class="delete-dialog">
-        <h3>Delete Class</h3>
-        <div class="delete-form">
-          <div class="form-group">
-            <label>Select Class:</label>
-            <select id="classSelect" onchange="updateIdField('class')"></select>
-          </div>
-          <div class="form-group">
-            <label>Or Enter Class ID:</label>
-            <input type="text" id="classId" placeholder="Enter Class ID">
-          </div>
-        </div>
-        <div class="button-group">
-          <button onclick="closeDeleteDialog('deleteClassDialog')">Cancel</button>
-          <button class="delete-btn" onclick="confirmDelete('class')">Delete</button>
-        </div>
-      </div>
-
-      <div id="deleteTeacherDialog" class="delete-dialog">
-        <h3>Delete Teacher</h3>
-        <div class="delete-form">
-          <div class="form-group">
-            <label>Select Teacher:</label>
-            <select id="teacherSelect" onchange="updateIdField('teacher')"></select>
-          </div>
-          <div class="form-group">
-            <label>Or Enter Teacher ID:</label>
-            <input type="text" id="teacherId" placeholder="Enter Teacher ID">
-          </div>
-        </div>
-        <div class="button-group">
-          <button onclick="closeDeleteDialog('deleteTeacherDialog')">Cancel</button>
-          <button class="delete-btn" onclick="confirmDelete('teacher')">Delete</button>
-        </div>
-      </div>
-
-      <div id="deleteStudentDialog" class="delete-dialog">
-        <h3>Delete Student</h3>
-        <div class="delete-form">
-          <div class="form-group">
-            <label>Select Student:</label>
-            <select id="studentSelect" onchange="updateIdField('student')"></select>
-          </div>
-          <div class="form-group">
-            <label>Or Enter Student ID:</label>
-            <input type="text" id="studentId" placeholder="Enter Student ID">
-          </div>
-        </div>
-        <div class="button-group">
-          <button onclick="closeDeleteDialog('deleteStudentDialog')">Cancel</button>
-          <button class="delete-btn" onclick="confirmDelete('student')">Delete</button>
-        </div>
-      </div>
-    </body>
-    </html>
-  `);
+// Get school years
+app.get('/api/school-years', async (req, res) => {
+  try {
+    const query = 'SELECT * FROM school_year ORDER BY school_year DESC';
+    const result = await pool.query(query);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching school years:', error);
+    res.status(500).json({ error: 'Failed to fetch school years' });
+  }
 });
 
 const PORT = 5174;
