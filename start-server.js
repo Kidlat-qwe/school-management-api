@@ -1118,9 +1118,11 @@ app.delete('/api/students/:id', async (req, res) => {
       'DELETE FROM student WHERE student_id = $1 RETURNING *',
       [id]
     );
+    
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Student not found' });
     }
+    
     res.json({ message: 'Student deleted successfully' });
   } catch (error) {
     console.error('Error deleting student:', error);
@@ -1587,7 +1589,7 @@ app.get('/', (req, res) => {
             <div id="classesTab" class="tab-content card">
               <div class="card-header">
                 <h2 class="card-title">Classes</h2>
-                <button class="btn btn-primary">
+                <button class="btn btn-primary" id="addClassBtn">
                   <i class="fas fa-plus"></i>
                   Add Class
                 </button>
@@ -1737,6 +1739,52 @@ app.get('/', (req, res) => {
         <!-- ... existing login modal code ... -->
       </div>
 
+      <!-- School Year Modal -->
+      <div class="modal fade" id="schoolYearModal" tabindex="-1" role="dialog" aria-labelledby="schoolYearModalLabel" aria-hidden="true">
+        <!-- ... existing school year modal code ... -->
+      </div>
+      
+      <!-- Class Modal -->
+      <div class="modal fade" id="classModal" tabindex="-1" role="dialog" aria-labelledby="classModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="classModalLabel">Add Class</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form id="classForm">
+                <input type="hidden" id="classId">
+                <div class="form-group">
+                  <label for="gradeLevel">Grade Level</label>
+                  <input type="text" class="form-control" id="gradeLevel" placeholder="e.g. Grade 7" required>
+                </div>
+                <div class="form-group">
+                  <label for="section">Section</label>
+                  <input type="text" class="form-control" id="section" placeholder="e.g. A" required>
+                </div>
+                <div class="form-group">
+                  <label for="classSchoolYear">School Year</label>
+                  <select class="form-control" id="classSchoolYear" required>
+                    <!-- School years will be loaded dynamically -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="classDescription">Description</label>
+                  <textarea class="form-control" id="classDescription" rows="3" placeholder="Optional description"></textarea>
+                </div>
+                <div id="classError" class="alert alert-danger mt-3" style="display: none;"></div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" id="saveClassBtn">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
       <script>
@@ -1752,6 +1800,228 @@ app.get('/', (req, res) => {
             const selectedContent = document.getElementById(tabId);
             if (selectedContent) {
               selectedContent.style.display = 'block';
+            }
+            
+            // Load data for the tab if needed
+            if (tabId === 'classesTab') {
+              loadClasses();
+              loadSchoolYearsForDropdown();
+            } else if (tabId === 'schoolYearsTab') {
+              loadSchoolYears();
+            }
+          };
+          
+          // Function to load school years for the dropdown
+          const loadSchoolYearsForDropdown = async () => {
+            try {
+              const response = await fetch('/api/school-years');
+              if (!response.ok) {
+                throw new Error('Failed to fetch school years');
+              }
+              
+              const data = await response.json();
+              const schoolYears = data.data || [];
+              
+              const dropdown = document.getElementById('classSchoolYear');
+              dropdown.innerHTML = '';
+              
+              schoolYears.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year.school_year;
+                option.textContent = year.school_year;
+                option.selected = year.is_active;
+                dropdown.appendChild(option);
+              });
+            } catch (error) {
+              console.error('Error loading school years for dropdown:', error);
+            }
+          };
+          
+          // Function to load classes from the server
+          const loadClasses = async () => {
+            try {
+              const response = await fetch('/api/classes');
+              if (!response.ok) {
+                throw new Error('Failed to fetch classes');
+              }
+              
+              const classes = await response.json();
+              renderClasses(classes);
+            } catch (error) {
+              console.error('Error loading classes:', error);
+              alert('Failed to load classes. Please try again later.');
+            }
+          };
+          
+          // Function to render classes in the table
+          const renderClasses = (classes) => {
+            const tableBody = document.getElementById('classesTableBody');
+            tableBody.innerHTML = '';
+            
+            if (classes.length === 0) {
+              const row = document.createElement('tr');
+              const cell = document.createElement('td');
+              cell.colSpan = 4;
+              cell.textContent = 'No classes found';
+              cell.style.textAlign = 'center';
+              row.appendChild(cell);
+              tableBody.appendChild(row);
+              return;
+            }
+            
+            classes.forEach(cls => {
+              const row = document.createElement('tr');
+              
+              // Grade Level
+              const gradeLevelCell = document.createElement('td');
+              gradeLevelCell.textContent = cls.grade_level;
+              row.appendChild(gradeLevelCell);
+              
+              // Section
+              const sectionCell = document.createElement('td');
+              sectionCell.textContent = cls.section;
+              row.appendChild(sectionCell);
+              
+              // School Year
+              const schoolYearCell = document.createElement('td');
+              schoolYearCell.textContent = cls.school_year;
+              row.appendChild(schoolYearCell);
+              
+              // Actions
+              const actionsCell = document.createElement('td');
+              
+              // View button
+              const viewBtn = document.createElement('button');
+              viewBtn.className = 'btn btn-sm btn-info mr-1';
+              viewBtn.innerHTML = '<i class="fas fa-eye"></i>';
+              viewBtn.title = 'View Details';
+              viewBtn.addEventListener('click', () => viewClassDetails(cls.class_id));
+              actionsCell.appendChild(viewBtn);
+              
+              // Edit button
+              const editBtn = document.createElement('button');
+              editBtn.className = 'btn btn-sm btn-primary mr-1';
+              editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+              editBtn.title = 'Edit Class';
+              editBtn.addEventListener('click', () => editClass(cls));
+              actionsCell.appendChild(editBtn);
+              
+              // Delete button
+              const deleteBtn = document.createElement('button');
+              deleteBtn.className = 'btn btn-sm btn-danger';
+              deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+              deleteBtn.title = 'Delete Class';
+              deleteBtn.addEventListener('click', () => deleteClass(cls.class_id));
+              actionsCell.appendChild(deleteBtn);
+              
+              row.appendChild(actionsCell);
+              tableBody.appendChild(row);
+            });
+          };
+          
+          // Add Class button handler
+          const addClassBtn = document.getElementById('addClassBtn');
+          addClassBtn.addEventListener('click', () => {
+            // Reset form
+            document.getElementById('classForm').reset();
+            document.getElementById('classId').value = '';
+            document.getElementById('classModalLabel').textContent = 'Add Class';
+            document.getElementById('classError').style.display = 'none';
+            
+            // Show modal
+            $('#classModal').modal('show');
+          });
+          
+          // Save Class button handler
+          const saveClassBtn = document.getElementById('saveClassBtn');
+          saveClassBtn.addEventListener('click', async () => {
+            const classId = document.getElementById('classId').value;
+            const gradeLevel = document.getElementById('gradeLevel').value;
+            const section = document.getElementById('section').value;
+            const schoolYear = document.getElementById('classSchoolYear').value;
+            const classDescription = document.getElementById('classDescription').value;
+            
+            // Validate form
+            if (!gradeLevel || !section || !schoolYear) {
+              document.getElementById('classError').textContent = 'Please fill in all required fields';
+              document.getElementById('classError').style.display = 'block';
+              return;
+            }
+            
+            try {
+              let url = '/api/classes';
+              let method = 'POST';
+              
+              if (classId) {
+                url = '/api/classes/' + classId;
+                method = 'PATCH';
+              }
+              
+              const response = await fetch(url, {
+                method,
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  grade_level: gradeLevel,
+                  section,
+                  school_year: schoolYear,
+                  class_description: classDescription
+                })
+              });
+              
+              if (!response.ok) {
+                throw new Error('Failed to save class');
+              }
+              
+              // Close modal and reload classes
+              $('#classModal').modal('hide');
+              loadClasses();
+            } catch (error) {
+              console.error('Error saving class:', error);
+              document.getElementById('classError').textContent = 'Failed to save class. Please try again.';
+              document.getElementById('classError').style.display = 'block';
+            }
+          });
+          
+          // Function to view class details
+          const viewClassDetails = (classId) => {
+            // In a real application, you would fetch and display detailed information
+            window.location.href = '/class-details.html?id=' + classId;
+          };
+          
+          // Function to edit a class
+          const editClass = (cls) => {
+            document.getElementById('classId').value = cls.class_id;
+            document.getElementById('gradeLevel').value = cls.grade_level;
+            document.getElementById('section').value = cls.section;
+            document.getElementById('classSchoolYear').value = cls.school_year;
+            document.getElementById('classDescription').value = cls.class_description || '';
+            document.getElementById('classModalLabel').textContent = 'Edit Class';
+            document.getElementById('classError').style.display = 'none';
+            
+            // Show modal
+            $('#classModal').modal('show');
+          };
+          
+          // Function to delete a class
+          const deleteClass = async (classId) => {
+            if (confirm('Are you sure you want to delete this class? This action cannot be undone.')) {
+              try {
+                const response = await fetch('/api/classes/' + classId, {
+                  method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                  throw new Error('Failed to delete class');
+                }
+                
+                // Reload classes
+                loadClasses();
+              } catch (error) {
+                console.error('Error deleting class:', error);
+                alert('Failed to delete class. Please try again.');
+              }
             }
           };
           
@@ -1781,7 +2051,7 @@ app.get('/', (req, res) => {
             });
           });
           
-          // Show the Classes tab by default
+          // Show the Classes tab by default and load the data
           showTab('classesTab');
         });
       </script>
