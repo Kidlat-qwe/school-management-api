@@ -1753,11 +1753,11 @@ app.get('/', (req, res) => {
                 <input type="hidden" id="classId">
                 <div class="form-group">
                   <label for="gradeLevel">Grade Level</label>
-                  <input type="text" class="form-control" id="gradeLevel" placeholder="e.g. Grade 7" required>
+                  <input type="text" class="form-control" id="gradeLevel" required>
                 </div>
                 <div class="form-group">
                   <label for="section">Section</label>
-                  <input type="text" class="form-control" id="section" placeholder="e.g. A" required>
+                  <input type="text" class="form-control" id="section" required>
                 </div>
                 <div class="form-group">
                   <label for="classSchoolYear">School Year</label>
@@ -1767,7 +1767,7 @@ app.get('/', (req, res) => {
                 </div>
                 <div class="form-group">
                   <label for="classDescription">Description</label>
-                  <textarea class="form-control" id="classDescription" rows="3" placeholder="e.g. Regular Class"></textarea>
+                  <textarea class="form-control" id="classDescription" rows="3"></textarea>
                 </div>
                 <div id="classError" class="alert alert-danger mt-3" style="display: none;"></div>
               </form>
@@ -1781,6 +1781,8 @@ app.get('/', (req, res) => {
       </div>
 
       <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js"></script>
       <script>
         document.addEventListener('DOMContentLoaded', () => {
           // Function to show the selected tab content and hide others
