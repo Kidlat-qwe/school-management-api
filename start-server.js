@@ -3,6 +3,8 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 8000;
@@ -10,6 +12,7 @@ const port = process.env.PORT || 8000;
 // Enable CORS for all origins during development
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -1475,7 +1478,6 @@ app.get('/api/school-years', async (req, res) => {
 
 // Serve static files
 app.use(express.static('public'));
-app.use(express.urlencoded({ extended: true }));
 
 // Define API routes for CRUD operations
 
@@ -1602,10 +1604,6 @@ app.get('/', (req, res) => {
 });
 
 // Create the public directory and index.html file
-const fs = require('fs');
-const path = require('path');
-
-// Create public directory if it doesn't exist
 if (!fs.existsSync(path.join(__dirname, 'public'))) {
   fs.mkdirSync(path.join(__dirname, 'public'));
 }
@@ -1641,7 +1639,7 @@ const indexHtml = `
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
           <li class="nav-item">
-            <a class="nav-link" href="#" data-page="dashboard">Dashboard</a>
+            <a class="nav-link active" href="#" data-page="dashboard">Dashboard</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#" data-page="students">Students</a>
@@ -1825,6 +1823,13 @@ document.addEventListener('DOMContentLoaded', function() {
   navLinks.forEach(link => {
     link.addEventListener('click', function(e) {
       e.preventDefault();
+      
+      // Remove active class from all links
+      navLinks.forEach(l => l.classList.remove('active'));
+      
+      // Add active class to clicked link
+      this.classList.add('active');
+      
       const targetPage = this.getAttribute('data-page');
       
       // Hide all pages
@@ -1986,12 +1991,27 @@ document.addEventListener('DOMContentLoaded', function() {
 `;
 
 // Write files
-fs.writeFileSync(path.join(__dirname, 'public', 'index.html'), indexHtml);
-fs.writeFileSync(path.join(__dirname, 'public', 'css', 'styles.css'), cssContent);
-fs.writeFileSync(path.join(__dirname, 'public', 'js', 'main.js'), jsContent);
+try {
+  if (!fs.existsSync(path.join(__dirname, 'public'))) {
+    fs.mkdirSync(path.join(__dirname, 'public'));
+  }
+  if (!fs.existsSync(path.join(__dirname, 'public', 'css'))) {
+    fs.mkdirSync(path.join(__dirname, 'public', 'css'));
+  }
+  if (!fs.existsSync(path.join(__dirname, 'public', 'js'))) {
+    fs.mkdirSync(path.join(__dirname, 'public', 'js'));
+  }
+  
+  fs.writeFileSync(path.join(__dirname, 'public', 'index.html'), indexHtml);
+  fs.writeFileSync(path.join(__dirname, 'public', 'css', 'styles.css'), cssContent);
+  fs.writeFileSync(path.join(__dirname, 'public', 'js', 'main.js'), jsContent);
+  console.log("✅ Frontend files created successfully!");
+} catch (error) {
+  console.error("❌ Error creating frontend files:", error);
+}
 
 // Start the server
-const PORT = 5174;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-}); 
+  console.log(`Server running on port ${PORT}`);
+});
