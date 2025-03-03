@@ -1991,7 +1991,7 @@ fs.writeFileSync(path.join(__dirname, 'public', 'css', 'styles.css'), cssContent
 fs.writeFileSync(path.join(__dirname, 'public', 'js', 'main.js'), jsContent);
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = 5174;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 }); 
