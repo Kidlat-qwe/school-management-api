@@ -4,7 +4,6 @@ const { Pool } = require('pg');
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const { initializeDatabase, queryGradesData } = require('./db-init');
 
 const app = express();
 const port = process.env.PORT || 8000;
@@ -30,35 +29,6 @@ pool.connect()
   .catch(err => console.error("❌ Database connection error:", err));
 
 module.exports = pool;
-
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.json({ status: 'API is running' });
-});
-
-// Endpoint to initialize database from grade.sql
-app.post('/api/init-db', async (req, res) => {
-  try {
-    const result = await initializeDatabase();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Endpoint to get all grades data
-app.get('/api/grades', async (req, res) => {
-  try {
-    const result = await queryGradesData();
-    if (result.success) {
-      res.json(result.data);
-    } else {
-      res.status(500).json({ error: result.error });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // GET endpoint to fetch all subjects
 app.get('/api/subjects', async (req, res) => {
@@ -691,10 +661,7 @@ app.get('/api/academic-rankings/campus', async (req, res) => {
           c.school_year = (SELECT school_year FROM school_year WHERE school_year_id = $1)
           AND sg.quarter = $2
         GROUP BY s.student_id, s.fname, s.mname, s.lname, c.grade_level, c.section
-        ORDER BY 
-          average_grade DESC NULLS LAST,
-          s.lname,
-          s.fname
+        ORDER BY average_grade DESC
       `;
       params = [schoolYearId, quarter];
     }
@@ -2044,17 +2011,4 @@ try {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});
-
-// Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  pool.end();
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
-  pool.end();
-  process.exit(0);
 });
