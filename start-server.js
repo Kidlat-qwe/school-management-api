@@ -1118,11 +1118,9 @@ app.delete('/api/students/:id', async (req, res) => {
       'DELETE FROM student WHERE student_id = $1 RETURNING *',
       [id]
     );
-    
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Student not found' });
     }
-    
     res.json({ message: 'Student deleted successfully' });
   } catch (error) {
     console.error('Error deleting student:', error);
@@ -1782,12 +1780,6 @@ app.get('/', (req, res) => {
       <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
       <script>
         document.addEventListener('DOMContentLoaded', () => {
-          // Authentication state
-          let isAuthenticated = false;
-          let currentUser = null;
-          let currentSchoolYear = '2023-2024';
-          let schoolYears = [];
-          
           // Function to show the selected tab content and hide others
           const showTab = (tabId) => {
             // Hide all tab contents
@@ -1800,23 +1792,12 @@ app.get('/', (req, res) => {
             if (selectedContent) {
               selectedContent.style.display = 'block';
             }
-            
-            // Load data for the tab if needed
-            if (tabId === 'schoolYearsTab') {
-              loadSchoolYears();
-            }
           };
           
           // Add click handlers for navigation
           document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
               e.preventDefault();
-              
-              // Check if user is authenticated
-              if (!isAuthenticated) {
-                $('#loginModal').modal('show');
-                return;
-              }
               
               // Update active class
               document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -1839,333 +1820,8 @@ app.get('/', (req, res) => {
             });
           });
           
-          // School Year Selector
-          const schoolYearSelect = document.getElementById('schoolYearSelect');
-          schoolYearSelect.addEventListener('change', (e) => {
-            currentSchoolYear = e.target.value;
-            // Reload data for the selected school year
-            loadDataForSchoolYear(currentSchoolYear);
-          });
-          
-          // Function to load data for a specific school year
-          const loadDataForSchoolYear = (schoolYear) => {
-            console.log('Loading data for school year: ' + schoolYear);
-            // Here you would fetch data from the server for the selected school year
-            // and update the tables accordingly
-            
-            // For demonstration, we'll just show a message
-            alert('Data loaded for school year: ' + schoolYear);
-          };
-          
-          // School Years Management
-          const addSchoolYearBtn = document.getElementById('addSchoolYearBtn');
-          const saveSchoolYearBtn = document.getElementById('saveSchoolYearBtn');
-          const schoolYearForm = document.getElementById('schoolYearForm');
-          const schoolYearError = document.getElementById('schoolYearError');
-          
-          // Load school years from the server
-          const loadSchoolYears = () => {
-            // In a real application, you would fetch this from the server
-            // For demonstration, we'll use mock data
-            schoolYears = [
-              { id: 1, year_name: '2023-2024', start_date: '2023-09-01', end_date: '2024-06-30', is_current: 1 },
-              { id: 2, year_name: '2022-2023', start_date: '2022-09-01', end_date: '2023-06-30', is_current: 0 },
-              { id: 3, year_name: '2021-2022', start_date: '2021-09-01', end_date: '2022-06-30', is_current: 0 }
-            ];
-            
-            renderSchoolYears();
-            updateSchoolYearSelect();
-          };
-          
-          // Render school years in the table
-          const renderSchoolYears = () => {
-            const tableBody = document.getElementById('schoolYearsTableBody');
-            tableBody.innerHTML = '';
-            
-            schoolYears.forEach(year => {
-              const row = document.createElement('tr');
-              
-              // Year Name
-              const nameCell = document.createElement('td');
-              nameCell.textContent = year.year_name;
-              row.appendChild(nameCell);
-              
-              // Start Date
-              const startDateCell = document.createElement('td');
-              startDateCell.textContent = formatDate(year.start_date);
-              row.appendChild(startDateCell);
-              
-              // End Date
-              const endDateCell = document.createElement('td');
-              endDateCell.textContent = formatDate(year.end_date);
-              row.appendChild(endDateCell);
-              
-              // Status
-              const statusCell = document.createElement('td');
-              const statusBadge = document.createElement('span');
-              statusBadge.className = year.is_current ? 'badge badge-success' : 'badge badge-secondary';
-              statusBadge.textContent = year.is_current ? 'Current' : 'Inactive';
-              statusCell.appendChild(statusBadge);
-              row.appendChild(statusCell);
-              
-              // Actions
-              const actionsCell = document.createElement('td');
-              
-              // Edit button
-              const editBtn = document.createElement('button');
-              editBtn.className = 'btn btn-sm btn-info mr-1';
-              editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-              editBtn.addEventListener('click', () => editSchoolYear(year));
-              actionsCell.appendChild(editBtn);
-              
-              // Set as Current button (only show for inactive years)
-              if (!year.is_current) {
-                const setCurrentBtn = document.createElement('button');
-                setCurrentBtn.className = 'btn btn-sm btn-success mr-1';
-                setCurrentBtn.innerHTML = '<i class="fas fa-check"></i>';
-                setCurrentBtn.title = 'Set as Current';
-                setCurrentBtn.addEventListener('click', () => setCurrentSchoolYear(year.id));
-                actionsCell.appendChild(setCurrentBtn);
-              }
-              
-              // Delete button (don't allow deleting the current year)
-              if (!year.is_current) {
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'btn btn-sm btn-danger';
-                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-                deleteBtn.addEventListener('click', () => deleteSchoolYear(year.id));
-                actionsCell.appendChild(deleteBtn);
-              }
-              
-              row.appendChild(actionsCell);
-              tableBody.appendChild(row);
-            });
-          };
-          
-          // Update the school year select dropdown
-          const updateSchoolYearSelect = () => {
-            schoolYearSelect.innerHTML = '';
-            
-            schoolYears.forEach(year => {
-              const option = document.createElement('option');
-              option.value = year.year_name;
-              option.textContent = year.year_name;
-              option.selected = year.is_current === 1;
-              schoolYearSelect.appendChild(option);
-            });
-            
-            // Update current school year
-            const currentYear = schoolYears.find(year => year.is_current === 1);
-            if (currentYear) {
-              currentSchoolYear = currentYear.year_name;
-            }
-          };
-          
-          // Format date for display
-          const formatDate = (dateString) => {
-            const date = new Date(dateString);
-            return date.toLocaleDateString();
-          };
-          
-          // Add new school year
-          addSchoolYearBtn.addEventListener('click', () => {
-            // Reset form
-            schoolYearForm.reset();
-            document.getElementById('schoolYearId').value = '';
-            document.getElementById('schoolYearModalLabel').textContent = 'Add School Year';
-            schoolYearError.style.display = 'none';
-            
-            // Show modal
-            $('#schoolYearModal').modal('show');
-          });
-          
-          // Edit school year
-          const editSchoolYear = (year) => {
-            document.getElementById('schoolYearId').value = year.id;
-            document.getElementById('yearName').value = year.year_name;
-            document.getElementById('startDate').value = year.start_date;
-            document.getElementById('endDate').value = year.end_date;
-            document.getElementById('isCurrent').checked = year.is_current === 1;
-            document.getElementById('schoolYearModalLabel').textContent = 'Edit School Year';
-            schoolYearError.style.display = 'none';
-            
-            // Show modal
-            $('#schoolYearModal').modal('show');
-          };
-          
-          // Save school year
-          saveSchoolYearBtn.addEventListener('click', () => {
-            const id = document.getElementById('schoolYearId').value;
-            const yearName = document.getElementById('yearName').value;
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const isCurrent = document.getElementById('isCurrent').checked;
-            
-            // Validate form
-            if (!yearName || !startDate || !endDate) {
-              schoolYearError.textContent = 'Please fill in all required fields';
-              schoolYearError.style.display = 'block';
-              return;
-            }
-            
-            // Validate dates
-            if (new Date(startDate) >= new Date(endDate)) {
-              schoolYearError.textContent = 'End date must be after start date';
-              schoolYearError.style.display = 'block';
-              return;
-            }
-            
-            // In a real application, you would send this to the server
-            // For demonstration, we'll update the local data
-            
-            if (id) {
-              // Update existing school year
-              const index = schoolYears.findIndex(year => year.id == id);
-              if (index !== -1) {
-                schoolYears[index] = {
-                  ...schoolYears[index],
-                  year_name: yearName,
-                  start_date: startDate,
-                  end_date: endDate,
-                  is_current: isCurrent ? 1 : 0
-                };
-                
-                // If setting as current, update other years
-                if (isCurrent) {
-                  schoolYears.forEach((year, i) => {
-                    if (i !== index) {
-                      schoolYears[i].is_current = 0;
-                    }
-                  });
-                }
-              }
-            } else {
-              // Add new school year
-              const newId = Math.max(...schoolYears.map(year => year.id)) + 1;
-              
-              // If setting as current, update other years
-              if (isCurrent) {
-                schoolYears.forEach(year => {
-                  year.is_current = 0;
-                });
-              }
-              
-              schoolYears.push({
-                id: newId,
-                year_name: yearName,
-                start_date: startDate,
-                end_date: endDate,
-                is_current: isCurrent ? 1 : 0
-              });
-            }
-            
-            // Update UI
-            renderSchoolYears();
-            updateSchoolYearSelect();
-            
-            // Close modal
-            $('#schoolYearModal').modal('hide');
-          });
-          
-          // Set current school year
-          const setCurrentSchoolYear = (id) => {
-            // In a real application, you would send this to the server
-            // For demonstration, we'll update the local data
-            
-            schoolYears.forEach(year => {
-              year.is_current = year.id === id ? 1 : 0;
-            });
-            
-            // Update UI
-            renderSchoolYears();
-            updateSchoolYearSelect();
-          };
-          
-          // Delete school year
-          const deleteSchoolYear = (id) => {
-            if (confirm('Are you sure you want to delete this school year? This action cannot be undone.')) {
-              // In a real application, you would send this to the server
-              // For demonstration, we'll update the local data
-              
-              const index = schoolYears.findIndex(year => year.id === id);
-              if (index !== -1) {
-                schoolYears.splice(index, 1);
-                
-                // Update UI
-                renderSchoolYears();
-                updateSchoolYearSelect();
-              }
-            }
-          };
-          
-          // Authentication handlers
-          const loginBtn = document.getElementById('loginBtn');
-          const logoutBtn = document.getElementById('logoutBtn');
-          const userDisplayName = document.getElementById('userDisplayName');
-          const loginSubmitBtn = document.getElementById('loginSubmitBtn');
-          const loginError = document.getElementById('loginError');
-          
-          loginBtn.addEventListener('click', () => {
-            $('#loginModal').modal('show');
-          });
-          
-          logoutBtn.addEventListener('click', () => {
-            isAuthenticated = false;
-            currentUser = null;
-            updateAuthUI();
-            
-            // Redirect to login view
-            showTab('classesTab');
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            document.querySelector('.nav-link').classList.add('active');
-          });
-          
-          loginSubmitBtn.addEventListener('click', () => {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            // Simple authentication for demonstration
-            // In a real application, you would send this to the server
-            if (username === 'admin' && password === 'password') {
-              isAuthenticated = true;
-              currentUser = {
-                name: 'Administrator',
-                role: 'admin'
-              };
-              updateAuthUI();
-              $('#loginModal').modal('hide');
-              
-              // Clear form
-              document.getElementById('loginForm').reset();
-              loginError.style.display = 'none';
-              
-              // Load school years after authentication
-              loadSchoolYears();
-            } else {
-              loginError.textContent = 'Invalid username or password';
-              loginError.style.display = 'block';
-            }
-          });
-          
-          // Update UI based on authentication state
-          const updateAuthUI = () => {
-            if (isAuthenticated) {
-              loginBtn.style.display = 'none';
-              logoutBtn.style.display = 'inline-block';
-              userDisplayName.style.display = 'inline-block';
-              userDisplayName.textContent = 'Welcome, ' + currentUser.name;
-            } else {
-              loginBtn.style.display = 'inline-block';
-              logoutBtn.style.display = 'none';
-              userDisplayName.style.display = 'none';
-            }
-          };
-          
           // Show the Classes tab by default
           showTab('classesTab');
-          
-          // Initialize UI
-          updateAuthUI();
         });
       </script>
     </body>
@@ -2175,5 +1831,5 @@ app.get('/', (req, res) => {
 
 const PORT = 5174;
 app.listen(PORT, () => {
-  console.log('Server running on http://localhost:' + PORT);
+  console.log(`Server running on http://localhost:${PORT}`);
 }); 
