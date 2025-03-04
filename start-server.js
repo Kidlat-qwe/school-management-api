@@ -50,65 +50,62 @@ const initDatabase = async () => {
 
     console.log('🚀 Starting database initialization...');
 
-    // Execute each statement without a transaction first
+    // First execute all CREATE TABLE statements
+    console.log('📦 Creating tables...');
     for (let statement of statements) {
-      try {
-        if (statement.toLowerCase().includes('create table')) {
+      if (statement.toLowerCase().includes('create table')) {
+        try {
           await client.query(statement);
           const tableName = statement.match(/create table (\w+)/i)?.[1];
           console.log(`✅ Created table: ${tableName}`);
-        }
-      } catch (err) {
-        if (err.code === '42P07') { // duplicate_table
-          console.log(`⚠️ Table already exists, continuing...`);
-        } else {
-          console.error('❌ Error creating table:', err.message);
-          throw err;
+        } catch (err) {
+          if (err.code === '42P07') { // duplicate_table
+            const tableName = statement.match(/create table (\w+)/i)?.[1];
+            console.log(`⚠️ Table ${tableName} already exists, continuing...`);
+          } else {
+            throw err;
+          }
         }
       }
     }
 
-    // Now start a transaction for data insertion
+    // Then execute all INSERT statements within a transaction
+    console.log('\n📝 Inserting data...');
     await client.query('BEGIN');
 
-    // Execute INSERT statements
-    for (let statement of statements) {
-      try {
+    try {
+      for (let statement of statements) {
         if (statement.toLowerCase().includes('insert into')) {
-          await client.query(statement);
-          const tableName = statement.match(/insert into (\w+)/i)?.[1];
-          console.log(`📝 Inserted data into: ${tableName}`);
-        }
-      } catch (err) {
-        if (err.code === '23505') { // unique_violation
-          console.log(`⚠️ Duplicate data, skipping...`);
-          continue;
-        } else {
-          console.error('❌ Error inserting data:', err.message);
-          throw err;
+          try {
+            await client.query(statement);
+            const tableName = statement.match(/insert into (\w+)/i)?.[1];
+            console.log(`✅ Inserted data into: ${tableName}`);
+          } catch (err) {
+            if (err.code === '23505') { // unique_violation
+              console.log(`⚠️ Duplicate data found, skipping...`);
+            } else {
+              throw err;
+            }
+          }
         }
       }
-    }
 
-    // Verify the tables and data
-    const tables = ['users', 'school_year', 'student', 'teacher', 'subject', 'class', 'student_grade', 'class_student', 'class_subject'];
-    console.log('\n📊 Verifying database tables and records:');
-    
-    for (const table of tables) {
-      try {
+      // Verify the data
+      console.log('\n🔍 Verifying database tables:');
+      const tables = ['users', 'school_year', 'student', 'teacher', 'subject', 'class', 'student_grade', 'class_student', 'class_subject'];
+      
+      for (const table of tables) {
         const result = await client.query(`SELECT COUNT(*) FROM ${table}`);
         console.log(`✅ ${table}: ${result.rows[0].count} records`);
-      } catch (err) {
-        console.error(`❌ Error verifying table ${table}:`, err.message);
       }
-    }
 
-    // Commit the transaction
-    await client.query('COMMIT');
-    console.log('\n✅ Database initialization completed successfully!');
+      await client.query('COMMIT');
+      console.log('\n✅ Database initialization completed successfully!');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    }
   } catch (error) {
-    // Rollback on error
-    await client.query('ROLLBACK');
     console.error('❌ Error during database initialization:', error);
     throw error;
   } finally {
