@@ -33,8 +33,8 @@ module.exports = pool;
 // Initialize database
 const initDatabase = async () => {
   try {
-    const gradeSQL = fs.readFileSync(path.join(__dirname, 'grade.sql'), 'utf8');
-    await pool.query(gradeSQL);
+    const initSQL = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf8');
+    await pool.query(initSQL);
     console.log('✅ Database initialized successfully!');
   } catch (error) {
     console.error('❌ Error initializing database:', error);
@@ -1601,29 +1601,24 @@ app.get('/', (req, res) => {
         // Add toggle function
         function toggleResponse(elementId) {
           const element = document.getElementById(elementId);
-          if (element) {
-            element.style.display = element.style.display === 'none' || !element.style.display ? 'block' : 'none';
+          if (element.style.display === 'none' || !element.style.display) {
+            element.style.display = 'block';
+          } else {
+            element.style.display = 'none';
           }
         }
 
         // Subjects
         async function fetchSubjects() {
           const responseElement = document.getElementById('subjectsResponse');
-          if (!responseElement) return;
-          
           responseElement.style.display = 'block';
           const result = await apiCall('/api/subjects');
           responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
         }
 
         async function addSubject() {
-          const subjectNameElement = document.getElementById('subjectName');
-          if (!subjectNameElement) return;
-          
-          const subjectName = subjectNameElement.value;
+          const subjectName = document.getElementById('subjectName').value;
           const responseElement = document.getElementById('addSubjectResponse');
-          if (!responseElement) return;
-          
           responseElement.style.display = 'block';
           const result = await apiCall('/api/subjects', 'POST', { subjectName });
           responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
@@ -1632,38 +1627,26 @@ app.get('/', (req, res) => {
         // Classes
         async function fetchClasses() {
           const responseElement = document.getElementById('classesResponse');
-          if (!responseElement) return;
-          
           responseElement.style.display = 'block';
           const result = await apiCall('/api/classes');
           responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
         }
 
         async function addClass() {
-          const gradeLevelElement = document.getElementById('gradeLevel');
-          const sectionElement = document.getElementById('section');
-          const schoolYearElement = document.getElementById('schoolYear');
-          const classDescriptionElement = document.getElementById('classDescription');
-          const responseElement = document.getElementById('addClassResponse');
-          
-          if (!gradeLevelElement || !sectionElement || !schoolYearElement || !responseElement) return;
-          
           const body = {
-            grade_level: gradeLevelElement.value,
-            section: sectionElement.value,
-            school_year: schoolYearElement.value,
-            class_description: classDescriptionElement ? classDescriptionElement.value : ''
+            grade_level: document.getElementById('gradeLevel').value,
+            section: document.getElementById('section').value,
+            school_year: document.getElementById('schoolYear').value,
+            class_description: document.getElementById('classDescription').value
           };
           const result = await apiCall('/api/classes', 'POST', body);
-          responseElement.innerHTML = 
+          document.getElementById('addClassResponse').innerHTML = 
             '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
         }
 
         // Teachers
         async function fetchTeachers() {
           const responseElement = document.getElementById('teachersResponse');
-          if (!responseElement) return;
-          
           responseElement.style.display = 'block';
           responseElement.innerHTML = '<p>Loading teachers...</p>';
           
@@ -1704,19 +1687,11 @@ app.get('/', (req, res) => {
         }
 
         async function addTeacher() {
-          const fnameElement = document.getElementById('fname');
-          const mnameElement = document.getElementById('mname');
-          const lnameElement = document.getElementById('lname');
-          const genderElement = document.getElementById('gender');
-          const teacherIdElement = document.getElementById('teacherId');
-          
-          if (!fnameElement || !lnameElement || !genderElement) return;
-          
-          const fname = fnameElement.value;
-          const mname = mnameElement ? mnameElement.value : '';
-          const lname = lnameElement.value;
-          const gender = genderElement.value;
-          const teacherId = teacherIdElement ? teacherIdElement.value : '';
+          const fname = document.getElementById('fname').value;
+          const mname = document.getElementById('mname').value;
+          const lname = document.getElementById('lname').value;
+          const gender = document.getElementById('gender').value;
+          const teacherId = document.getElementById('teacherId').value;
           
           // Validate required fields
           if (!fname || !lname || !gender) {
@@ -1735,8 +1710,6 @@ app.get('/', (req, res) => {
             };
             
             const responseElement = document.getElementById('addTeacherResponse');
-            if (!responseElement) return;
-            
             responseElement.style.display = 'block';
             responseElement.innerHTML = '<p>Adding teacher...</p>';
             
@@ -1745,11 +1718,11 @@ app.get('/', (req, res) => {
             if (result.success) {
               responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
               // Clear form fields
-              if (fnameElement) fnameElement.value = '';
-              if (mnameElement) mnameElement.value = '';
-              if (lnameElement) lnameElement.value = '';
-              if (genderElement) genderElement.value = '';
-              if (teacherIdElement) teacherIdElement.value = '';
+              document.getElementById('fname').value = '';
+              document.getElementById('mname').value = '';
+              document.getElementById('lname').value = '';
+              document.getElementById('gender').value = '';
+              document.getElementById('teacherId').value = '';
               // Refresh the teachers list
               fetchTeachers();
             } else {
@@ -1759,10 +1732,7 @@ app.get('/', (req, res) => {
         }
         
         async function fetchTeacherAssignments() {
-          const teacherIdElement = document.getElementById('teacherIdForAssignments');
-          if (!teacherIdElement) return;
-          
-          const teacherId = teacherIdElement.value;
+          const teacherId = document.getElementById('teacherIdForAssignments').value;
           
           if (!teacherId) {
             alert('Please enter a Teacher ID');
@@ -1770,8 +1740,6 @@ app.get('/', (req, res) => {
           }
           
           const responseElement = document.getElementById('teacherAssignmentsResponse');
-          if (!responseElement) return;
-          
           responseElement.style.display = 'block';
           responseElement.innerHTML = '<p>Loading assignments...</p>';
           
@@ -1810,33 +1778,21 @@ app.get('/', (req, res) => {
         // Students
         async function fetchStudents() {
           const responseElement = document.getElementById('studentsResponse');
-          if (!responseElement) return;
-          
           responseElement.style.display = 'block';
           const result = await apiCall('/api/students');
           responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
         }
 
         async function addStudent() {
-          const fnameElement = document.getElementById('studentFname');
-          const mnameElement = document.getElementById('studentMname');
-          const lnameElement = document.getElementById('studentLname');
-          const genderElement = document.getElementById('studentGender');
-          const ageElement = document.getElementById('studentAge');
-          
-          if (!fnameElement || !lnameElement || !genderElement || !ageElement) return;
-          
           const body = {
-            fname: fnameElement.value,
-            mname: mnameElement ? mnameElement.value : '',
-            lname: lnameElement.value,
-            gender: genderElement.value,
-            age: parseInt(ageElement.value) || 0
+            fname: document.getElementById('studentFname').value,
+            mname: document.getElementById('studentMname').value,
+            lname: document.getElementById('studentLname').value,
+            gender: document.getElementById('studentGender').value,
+            age: parseInt(document.getElementById('studentAge').value)
           };
           
           const responseElement = document.getElementById('addStudentResponse');
-          if (!responseElement) return;
-          
           responseElement.style.display = 'block';
           const result = await apiCall('/api/students', 'POST', body);
           responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
@@ -1845,25 +1801,18 @@ app.get('/', (req, res) => {
         // School Years
         async function fetchSchoolYears() {
           const responseElement = document.getElementById('schoolYearsResponse');
-          if (!responseElement) return;
-          
           responseElement.style.display = 'block';
           const result = await apiCall('/api/school-years');
           responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
         }
 
         async function addSchoolYear() {
-          const schoolYearElement = document.getElementById('schoolYear');
-          if (!schoolYearElement) return;
-          
           const body = {
-            school_year: schoolYearElement.value,
+            school_year: document.getElementById('schoolYear').value,
             is_active: false // Default to inactive when creating
           };
           
           const responseElement = document.getElementById('addSchoolYearResponse');
-          if (!responseElement) return;
-          
           responseElement.style.display = 'block';
           const result = await apiCall('/api/school-years', 'POST', body);
           responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
@@ -1886,9 +1835,7 @@ app.get('/', (req, res) => {
               const result = await response.json();
               alert(result.message);
               // Refresh the list after deletion
-              if (typeof window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's'] === 'function') {
-                window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
-              }
+              window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
             } catch (error) {
               console.error('Error:', error);
               alert('Failed to delete ' + type);
@@ -1896,38 +1843,84 @@ app.get('/', (req, res) => {
           }
         }
 
+        // Update the add functions to use confirmation
+        async function addSubject() {
+          confirmAdd('subject', async () => {
+            const subjectName = document.getElementById('subjectName').value;
+            const result = await apiCall('/api/subjects', 'POST', { subjectName });
+            document.getElementById('addSubjectResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchSubjects();
+          });
+        }
+
+        async function addClass() {
+          confirmAdd('class', async () => {
+            const body = {
+              grade_level: document.getElementById('gradeLevel').value,
+              section: document.getElementById('section').value,
+              school_year: document.getElementById('schoolYear').value,
+              class_description: document.getElementById('classDescription').value
+            };
+            const result = await apiCall('/api/classes', 'POST', body);
+            document.getElementById('addClassResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchClasses();
+          });
+        }
+
+        async function addTeacher() {
+          confirmAdd('teacher', async () => {
+            const body = {
+              teacherId: document.getElementById('teacherId').value,
+              fname: document.getElementById('fname').value,
+              mname: document.getElementById('mname').value,
+              lname: document.getElementById('lname').value,
+              gender: document.getElementById('gender').value
+            };
+            const result = await apiCall('/api/teachers', 'POST', body);
+            document.getElementById('addTeacherResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchTeachers();
+          });
+        }
+
+        async function addStudent() {
+          confirmAdd('student', async () => {
+            const body = {
+              fname: document.getElementById('studentFname').value,
+              mname: document.getElementById('studentMname').value,
+              lname: document.getElementById('studentLname').value,
+              gender: document.getElementById('studentGender').value,
+              age: parseInt(document.getElementById('studentAge').value)
+            };
+            const result = await apiCall('/api/students', 'POST', body);
+            document.getElementById('addStudentResponse').innerHTML = 
+              '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+            fetchStudents();
+          });
+        }
+
         // Delete functionality
         function showDeleteDialog(dialogId) {
-          const overlayElement = document.getElementById('overlay');
-          const dialogElement = document.getElementById(dialogId);
-          
-          if (overlayElement) overlayElement.style.display = 'block';
-          if (dialogElement) dialogElement.style.display = 'block';
+          document.getElementById('overlay').style.display = 'block';
+          document.getElementById(dialogId).style.display = 'block';
         }
 
         function closeDeleteDialog(dialogId) {
-          const overlayElement = document.getElementById('overlay');
-          const dialogElement = document.getElementById(dialogId);
-          
-          if (overlayElement) overlayElement.style.display = 'none';
-          if (dialogElement) dialogElement.style.display = 'none';
+          document.getElementById('overlay').style.display = 'none';
+          document.getElementById(dialogId).style.display = 'none';
         }
 
         function updateIdField(type) {
           const select = document.getElementById(type + 'Select');
           const idField = document.getElementById(type + 'Id');
-          
-          if (select && idField) {
-            idField.value = select.value;
-          }
+          idField.value = select.value;
         }
 
         async function deleteSubject() {
           const subjects = await apiCall('/api/subjects');
           const select = document.getElementById('subjectSelect');
-          
-          if (!select) return;
-          
           select.innerHTML = '<option value="">Select a subject...</option>' +
             subjects.data.map(subject => (
               '<option value="' + subject.subject_id + '">' + 
@@ -1939,9 +1932,6 @@ app.get('/', (req, res) => {
         async function deleteClass() {
           const classes = await apiCall('/api/classes');
           const select = document.getElementById('classSelect');
-          
-          if (!select) return;
-          
           select.innerHTML = '<option value="">Select a class...</option>' +
             classes.data.map(cls => (
               '<option value="' + cls.class_id + '">Grade ' + 
@@ -1954,9 +1944,6 @@ app.get('/', (req, res) => {
         async function deleteTeacher() {
           const teachers = await apiCall('/api/teachers');
           const select = document.getElementById('teacherSelect');
-          
-          if (!select) return;
-          
           select.innerHTML = '<option value="">Select a teacher...</option>' +
             teachers.data.map(teacher => (
               '<option value="' + teacher.teacher_id + '">' + 
@@ -1968,9 +1955,6 @@ app.get('/', (req, res) => {
         async function deleteStudent() {
           const students = await apiCall('/api/students');
           const select = document.getElementById('studentSelect');
-          
-          if (!select) return;
-          
           select.innerHTML = '<option value="">Select a student...</option>' +
             students.data.map(student => (
               '<option value="' + student.student_id + '">' + 
@@ -1982,10 +1966,7 @@ app.get('/', (req, res) => {
         async function confirmDelete(type) {
           const idField = document.getElementById(type + 'Id');
           const select = document.getElementById(type + 'Select');
-          
-          if (!idField && !select) return;
-          
-          const id = idField ? idField.value : (select ? select.value : '');
+          const id = idField.value || select.value;
           
           if (!id) {
             alert('Please select an item or enter an ID to delete');
@@ -2003,9 +1984,7 @@ app.get('/', (req, res) => {
                 alert(result.message || type + ' with ID ' + id + ' deleted successfully');
                 closeDeleteDialog('delete' + type.charAt(0).toUpperCase() + type.slice(1) + 'Dialog');
                 // Refresh the list
-                if (typeof window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's'] === 'function') {
-                  window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
-                }
+                window['fetch' + type.charAt(0).toUpperCase() + type.slice(1) + 's']();
               } else {
                 throw new Error(result.error || 'Failed to delete ' + type + ' with ID ' + id);
               }
