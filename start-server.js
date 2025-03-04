@@ -1637,8 +1637,15 @@ app.get('/', (req, res) => {
 });
 
 // Dashboard route
-app.get('/dashboard', (req, res) => {
-  res.send(`
+app.get('/dashboard', async (req, res) => {
+  try {
+    // Get actual counts from database
+    const studentCount = await pool.query('SELECT COUNT(*) FROM student');
+    const teacherCount = await pool.query('SELECT COUNT(*) FROM teacher');
+    const classCount = await pool.query('SELECT COUNT(*) FROM class');
+    const subjectCount = await pool.query('SELECT COUNT(*) FROM subject');
+
+    res.send(`
     <!DOCTYPE html>
     <html>
     <head>
@@ -1747,19 +1754,19 @@ app.get('/dashboard', (req, res) => {
         
         <div class="stats-grid">
           <div class="stat-card students">
-            <div class="stat-number">3</div>
+            <div class="stat-number">${studentCount.rows[0].count}</div>
             <div class="stat-label">Students</div>
           </div>
           <div class="stat-card teachers">
-            <div class="stat-number">4</div>
+            <div class="stat-number">${teacherCount.rows[0].count}</div>
             <div class="stat-label">Teachers</div>
           </div>
           <div class="stat-card classes">
-            <div class="stat-number">4</div>
+            <div class="stat-number">${classCount.rows[0].count}</div>
             <div class="stat-label">Classes</div>
           </div>
           <div class="stat-card subjects">
-            <div class="stat-number">4</div>
+            <div class="stat-number">${subjectCount.rows[0].count}</div>
             <div class="stat-label">Subjects</div>
           </div>
         </div>
@@ -1767,6 +1774,10 @@ app.get('/dashboard', (req, res) => {
     </body>
     </html>
   `);
+  } catch (error) {
+    console.error('Error loading dashboard:', error);
+    res.status(500).send('Error loading dashboard');
+  }
 });
 
 const PORT = 5174;
