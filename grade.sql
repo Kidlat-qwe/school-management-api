@@ -1,5 +1,13 @@
-CREATE DATABASE school_db;
-\c school_db;
+-- First drop existing tables in the correct order to avoid foreign key conflicts
+DROP TABLE IF EXISTS student_grade CASCADE;
+DROP TABLE IF EXISTS class_student CASCADE;
+DROP TABLE IF EXISTS class_subject CASCADE;
+DROP TABLE IF EXISTS student CASCADE;
+DROP TABLE IF EXISTS teacher CASCADE;
+DROP TABLE IF EXISTS subject CASCADE;
+DROP TABLE IF EXISTS class CASCADE;
+DROP TABLE IF EXISTS school_year CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
 -- Users Table
 CREATE TABLE users (
@@ -93,8 +101,9 @@ INSERT INTO school_year (school_year, is_active) VALUES
 
 -- Insert Students
 INSERT INTO student (fname, mname, lname, gender, age, user_id) VALUES
-('Alice', 'M.', 'Johnson', 'F', 10, 3),
-('Bob', 'L.', 'Smith', 'M', 11, NULL);
+('Alice', 'M', 'Brown', 'F', 13, 3),
+('Bob', 'J', 'Davis', 'M', 13, NULL),
+('Carol', 'A', 'Wilson', 'F', 12, NULL);
 
 -- Insert Teachers
 INSERT INTO teacher (fname, mname, lname, gender, status, user_id) VALUES
