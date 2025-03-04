@@ -6,27 +6,28 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 5174;
 
 // Enable CORS for all origins during development
 app.use(cors());
 app.use(express.json());
 
+// Database connection configuration that works both locally and on Render
 const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false, // Needed for cloud-based databases
-  },
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:admin@localhost:5432/grade',
+  ssl: process.env.DATABASE_URL ? {
+    rejectUnauthorized: false
+  } : false
 });
 
+// Test database connection
 pool.connect()
-  .then(() => console.log("✅ Connected to PostgreSQL!"))
-  .catch(err => console.error("❌ Database connection error:", err));
+  .then(() => {
+    console.log('✅ Connected to PostgreSQL database successfully!');
+  })
+  .catch((err) => {
+    console.error('❌ Error connecting to PostgreSQL database:', err);
+  });
 
 module.exports = pool;
 
@@ -1088,24 +1089,24 @@ app.get('/api/class-grades/:classId', async (req, res) => {
 app.get('/api/active-school-year', async (req, res) => {
   try {
     const query = `
-    SELECT school_year
-    FROM school_year
-    WHERE is_active = true
-    LIMIT 1
-  `;
-  
-  const result = await pool.query(query);
-  
-  if (result.rows.length === 0) {
-    res.status(404).json({ error: 'No active school year found' });
-    return;
+      SELECT school_year
+      FROM school_year
+      WHERE is_active = true
+      LIMIT 1
+    `;
+    
+    const result = await pool.query(query);
+    
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'No active school year found' });
+      return;
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching active school year:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
-  
-  res.json(result.rows[0]);
-} catch (error) {
-  console.error('Error fetching active school year:', error);
-  res.status(500).json({ error: 'Internal server error' });
-}
 });
 
 // DELETE endpoint for subjects
@@ -1656,7 +1657,7 @@ app.get('/students', (req, res) => {
         <div class="header">
           <h1 class="page-title">Students Data</h1>
           <button class="add-button" onclick="showAddStudentModal()">Add Student</button>
-        </div>
+          </div>
 
         <table class="students-table">
           <thead>
@@ -1687,31 +1688,31 @@ app.get('/students', (req, res) => {
             <div class="form-group">
               <label for="firstName">First Name</label>
               <input type="text" id="firstName" required>
-            </div>
-            <div class="form-group">
+        </div>
+          <div class="form-group">
               <label for="middleName">Middle Name</label>
               <input type="text" id="middleName">
             </div>
             <div class="form-group">
               <label for="lastName">Last Name</label>
               <input type="text" id="lastName" required>
-            </div>
-            <div class="form-group">
+          </div>
+          <div class="form-group">
               <label for="gender">Gender</label>
               <select id="gender" required>
                 <option value="">Select Gender</option>
-                <option value="M">Male</option>
-                <option value="F">Female</option>
-              </select>
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+            </select>
             </div>
-            <div class="form-group">
+          <div class="form-group">
               <label for="age">Age</label>
               <input type="number" id="age" required min="1" max="100">
             </div>
             <div class="form-actions">
               <button type="button" class="cancel-btn" onclick="hideAddStudentModal()">Cancel</button>
               <button type="submit" class="save-btn">Save Student</button>
-            </div>
+          </div>
           </form>
         </div>
       </div>
@@ -1932,7 +1933,7 @@ app.get('/dashboard', (req, res) => {
           <a href="/class-student" class="nav-link">Class Student</a>
           <a href="/school-year" class="nav-link">School Year</a>
           <a href="/users" class="nav-link">Users</a>
-        </div>
+          </div>
       </nav>
 
       <div class="container">
@@ -1950,13 +1951,13 @@ app.get('/dashboard', (req, res) => {
           <div class="stat-card classes">
             <div class="stat-number">4</div>
             <div class="stat-label">Classes</div>
-          </div>
+        </div>
           <div class="stat-card subjects">
             <div class="stat-number">4</div>
             <div class="stat-label">Subjects</div>
-          </div>
         </div>
       </div>
+          </div>
 
       <script>
         // Add any dashboard JavaScript here
