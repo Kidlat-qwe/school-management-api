@@ -1088,24 +1088,24 @@ app.get('/api/class-grades/:classId', async (req, res) => {
 app.get('/api/active-school-year', async (req, res) => {
   try {
     const query = `
-      SELECT school_year
-      FROM school_year
-      WHERE is_active = true
-      LIMIT 1
-    `;
-    
-    const result = await pool.query(query);
-    
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'No active school year found' });
-      return;
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching active school year:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    SELECT school_year
+    FROM school_year
+    WHERE is_active = true
+    LIMIT 1
+  `;
+  
+  const result = await pool.query(query);
+  
+  if (result.rows.length === 0) {
+    res.status(404).json({ error: 'No active school year found' });
+    return;
   }
+  
+  res.json(result.rows[0]);
+} catch (error) {
+  console.error('Error fetching active school year:', error);
+  res.status(500).json({ error: 'Internal server error' });
+}
 });
 
 // DELETE endpoint for subjects
@@ -1400,13 +1400,13 @@ app.get('/api/grades/stats/class/:classId', async (req, res) => {
   }
 });
 
-//THE API ENDPOINTS FRONTEND
-app.get('/', (req, res) => {
+// Add students page route
+app.get('/students', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html>
     <head>
-      <title>School Management Database</title>
+      <title>Students Data - School Management Database</title>
       <style>
         * {
           margin: 0;
@@ -1452,94 +1452,186 @@ app.get('/', (req, res) => {
           padding: 0 1rem;
         }
 
-        .dashboard-title {
-          font-size: 1.5rem;
-          margin-bottom: 1.5rem;
-          color: #1f2937;
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 1rem;
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           margin-bottom: 2rem;
         }
 
-        .stat-card {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .stat-card.students { background: #3b82f6; color: white; }
-        .stat-card.teachers { background: #10b981; color: white; }
-        .stat-card.classes { background: #06b6d4; color: white; }
-        .stat-card.subjects { background: #fbbf24; color: white; }
-
-        .stat-number {
-          font-size: 2rem;
-          font-weight: bold;
-          margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-          font-size: 0.9rem;
-          opacity: 0.9;
-        }
-
-        .endpoints-section {
-          background: white;
-          border-radius: 8px;
-          padding: 1.5rem;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .endpoints-title {
-          font-size: 1.2rem;
-          margin-bottom: 1rem;
+        .page-title {
+          font-size: 1.5rem;
           color: #1f2937;
         }
 
-        .endpoints-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 2rem;
+        .add-button {
+          background: #3b82f6;
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          cursor: pointer;
+          text-decoration: none;
         }
 
-        .endpoint-group {
+        .add-button:hover {
+          background: #2563eb;
+        }
+
+        .students-table {
+          width: 100%;
+          background: white;
+          border-radius: 0.5rem;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .students-table th,
+        .students-table td {
+          padding: 0.75rem 1rem;
+          text-align: left;
+        }
+
+        .students-table th {
+          background: #f8fafc;
+          font-weight: 500;
+          color: #4b5563;
+          font-size: 0.875rem;
+        }
+
+        .students-table tr:nth-child(even) {
+          background: #f8fafc;
+        }
+
+        .students-table td {
+          font-size: 0.875rem;
+          color: #1f2937;
+        }
+
+        .action-buttons {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .edit-btn,
+        .delete-btn {
+          padding: 0.25rem 0.75rem;
+          border-radius: 0.25rem;
+          font-size: 0.75rem;
+          cursor: pointer;
+          border: none;
+          color: white;
+        }
+
+        .edit-btn {
+          background: #3b82f6;
+        }
+
+        .edit-btn:hover {
+          background: #2563eb;
+        }
+
+        .delete-btn {
+          background: #ef4444;
+        }
+
+        .delete-btn:hover {
+          background: #dc2626;
+        }
+
+        /* Add Student Modal */
+        .modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+          background: white;
+          padding: 2rem;
+          border-radius: 0.5rem;
+          width: 90%;
+          max-width: 500px;
+          margin: 4rem auto;
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           margin-bottom: 1.5rem;
         }
 
-        .endpoint-group h3 {
-          font-size: 1rem;
-          color: #4b5563;
+        .modal-title {
+          font-size: 1.25rem;
+          color: #1f2937;
+        }
+
+        .close-button {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #6b7280;
+        }
+
+        .form-group {
+          margin-bottom: 1rem;
+        }
+
+        .form-group label {
+          display: block;
           margin-bottom: 0.5rem;
-        }
-
-        .endpoint-item {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 0;
-          font-size: 0.9rem;
-        }
-
-        .method {
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          font-weight: 500;
-          font-size: 0.8rem;
-        }
-
-        .method.get { background: #dbeafe; color: #1e40af; }
-        .method.post { background: #dcfce7; color: #166534; }
-        .method.patch { background: #fef3c7; color: #92400e; }
-        .method.delete { background: #fee2e2; color: #991b1b; }
-
-        .endpoint-path {
           color: #4b5563;
-          font-family: monospace;
+          font-size: 0.875rem;
+        }
+
+        .form-group input {
+          width: 100%;
+          padding: 0.5rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+        }
+
+        .form-group input:focus {
+          outline: none;
+          border-color: #3b82f6;
+          ring: 2px solid #3b82f6;
+        }
+
+        .form-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 1rem;
+          margin-top: 1.5rem;
+        }
+
+        .cancel-btn {
+          padding: 0.5rem 1rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.375rem;
+          background: white;
+          color: #4b5563;
+          cursor: pointer;
+        }
+
+        .save-btn {
+          padding: 0.5rem 1rem;
+          background: #3b82f6;
+          color: white;
+          border: none;
+          border-radius: 0.375rem;
+          cursor: pointer;
+        }
+
+        .save-btn:hover {
+          background: #2563eb;
         }
       </style>
     </head>
@@ -1547,167 +1639,186 @@ app.get('/', (req, res) => {
       <nav class="nav">
         <a href="/" class="nav-brand">School Management Database</a>
         <div class="nav-links">
-          <a href="#" class="nav-link">Dashboard</a>
-          <a href="#" class="nav-link">Students</a>
-          <a href="#" class="nav-link">Teachers</a>
-          <a href="#" class="nav-link">Classes</a>
-          <a href="#" class="nav-link">Subjects</a>
-          <a href="#" class="nav-link">Student Grade</a>
-          <a href="#" class="nav-link">Class Subject</a>
-          <a href="#" class="nav-link">Class Student</a>
-          <a href="#" class="nav-link">School Year</a>
-          <a href="#" class="nav-link">Users</a>
+          <a href="/dashboard" class="nav-link">Dashboard</a>
+          <a href="/students" class="nav-link">Students</a>
+          <a href="/teachers" class="nav-link">Teachers</a>
+          <a href="/classes" class="nav-link">Classes</a>
+          <a href="/subjects" class="nav-link">Subjects</a>
+          <a href="/student-grade" class="nav-link">Student Grade</a>
+          <a href="/class-subject" class="nav-link">Class Subject</a>
+          <a href="/class-student" class="nav-link">Class Student</a>
+          <a href="/school-year" class="nav-link">School Year</a>
+          <a href="/users" class="nav-link">Users</a>
         </div>
       </nav>
 
       <div class="container">
-        <h1 class="dashboard-title">Dashboard</h1>
-        
-        <div class="stats-grid">
-          <div class="stat-card students">
-            <div class="stat-number">3</div>
-            <div class="stat-label">Students</div>
-          </div>
-          <div class="stat-card teachers">
-            <div class="stat-number">4</div>
-            <div class="stat-label">Teachers</div>
-          </div>
-          <div class="stat-card classes">
-            <div class="stat-number">4</div>
-            <div class="stat-label">Classes</div>
-          </div>
-          <div class="stat-card subjects">
-            <div class="stat-number">4</div>
-            <div class="stat-label">Subjects</div>
-          </div>
+        <div class="header">
+          <h1 class="page-title">Students Data</h1>
+          <button class="add-button" onclick="showAddStudentModal()">Add Student</button>
         </div>
 
-        <div class="endpoints-section">
-          <h2 class="endpoints-title">Endpoints</h2>
-          
-          <div class="endpoints-grid">
-            <div class="endpoint-group">
-              <h3>Students</h3>
-              <div class="endpoint-item">
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/students</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method post">POST</span>
-                <span class="endpoint-path">/api/students</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/students</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method delete">DELETE</span>
-                <span class="endpoint-path">/api/students</span>
-              </div>
-            </div>
+        <table class="students-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>First Name</th>
+              <th>Middle Name</th>
+              <th>Last Name</th>
+              <th>Gender</th>
+              <th>Age</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTableBody">
+            <!-- Student data will be populated here -->
+          </tbody>
+        </table>
+      </div>
 
-            <div class="endpoint-group">
-              <h3>Teachers</h3>
-              <div class="endpoint-item">
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/teachers</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method post">POST</span>
-                <span class="endpoint-path">/api/teachers</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/teachers</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method delete">DELETE</span>
-                <span class="endpoint-path">/api/teachers</span>
-              </div>
-            </div>
-
-            <div class="endpoint-group">
-              <h3>Classes</h3>
-              <div class="endpoint-item">
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/classes</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method post">POST</span>
-                <span class="endpoint-path">/api/classes</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/classes</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method delete">DELETE</span>
-                <span class="endpoint-path">/api/classes</span>
-              </div>
-            </div>
-
-            <div class="endpoint-group">
-              <h3>Subjects</h3>
-              <div class="endpoint-item">
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/subjects</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method post">POST</span>
-                <span class="endpoint-path">/api/subjects</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/subjects</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method delete">DELETE</span>
-                <span class="endpoint-path">/api/subjects</span>
-              </div>
-            </div>
-
-            <div class="endpoint-group">
-              <h3>School Year</h3>
-              <div class="endpoint-item">
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/school-year</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method post">POST</span>
-                <span class="endpoint-path">/api/school-year</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/school-year</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method delete">DELETE</span>
-                <span class="endpoint-path">/api/school-year</span>
-              </div>
-            </div>
-
-            <div class="endpoint-group">
-              <h3>Users</h3>
-              <div class="endpoint-item">
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/users</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method post">POST</span>
-                <span class="endpoint-path">/api/users</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/users</span>
-              </div>
-              <div class="endpoint-item">
-                <span class="method delete">DELETE</span>
-                <span class="endpoint-path">/api/users</span>
-              </div>
-            </div>
+      <!-- Add Student Modal -->
+      <div id="addStudentModal" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title">Add New Student</h2>
+            <button class="close-button" onclick="hideAddStudentModal()">&times;</button>
           </div>
+          <form id="addStudentForm" onsubmit="handleAddStudent(event)">
+            <div class="form-group">
+              <label for="firstName">First Name</label>
+              <input type="text" id="firstName" required>
+            </div>
+            <div class="form-group">
+              <label for="middleName">Middle Name</label>
+              <input type="text" id="middleName">
+            </div>
+            <div class="form-group">
+              <label for="lastName">Last Name</label>
+              <input type="text" id="lastName" required>
+            </div>
+            <div class="form-group">
+              <label for="gender">Gender</label>
+              <select id="gender" required>
+                <option value="">Select Gender</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="age">Age</label>
+              <input type="number" id="age" required min="1" max="100">
+            </div>
+            <div class="form-actions">
+              <button type="button" class="cancel-btn" onclick="hideAddStudentModal()">Cancel</button>
+              <button type="submit" class="save-btn">Save Student</button>
+            </div>
+          </form>
         </div>
       </div>
+
+      <script>
+        // Fetch and display students
+        async function fetchStudents() {
+          try {
+            const response = await fetch('/api/students');
+            const students = await response.json();
+            const tableBody = document.getElementById('studentsTableBody');
+            
+            const rows = students.map(student => 
+              '<tr>' +
+                '<td>' + student.student_id + '</td>' +
+                '<td>' + student.fname + '</td>' +
+                '<td>' + (student.mname || '') + '</td>' +
+                '<td>' + student.lname + '</td>' +
+                '<td>' + student.gender + '</td>' +
+                '<td>' + student.age + '</td>' +
+                '<td class="action-buttons">' +
+                  '<button class="edit-btn" onclick="editStudent(' + student.student_id + ')">Edit</button>' +
+                  '<button class="delete-btn" onclick="deleteStudent(' + student.student_id + ')">Delete</button>' +
+                '</td>' +
+              '</tr>'
+            ).join('');
+            
+            tableBody.innerHTML = rows;
+          } catch (error) {
+            console.error('Error fetching students:', error);
+          }
+        }
+
+        // Modal functions
+        function showAddStudentModal() {
+          document.getElementById('addStudentModal').style.display = 'block';
+        }
+
+        function hideAddStudentModal() {
+          document.getElementById('addStudentModal').style.display = 'none';
+        }
+
+        // Handle add student
+        async function handleAddStudent(event) {
+          event.preventDefault();
+          
+          const studentData = {
+            fname: document.getElementById('firstName').value,
+            mname: document.getElementById('middleName').value,
+            lname: document.getElementById('lastName').value,
+            gender: document.getElementById('gender').value,
+            age: parseInt(document.getElementById('age').value)
+          };
+
+          try {
+            const response = await fetch('/api/students', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(studentData)
+            });
+
+            if (response.ok) {
+              hideAddStudentModal();
+              fetchStudents();
+              event.target.reset();
+            } else {
+              const error = await response.json();
+              alert(error.message || 'Failed to add student');
+            }
+          } catch (error) {
+            console.error('Error adding student:', error);
+            alert('Failed to add student');
+          }
+        }
+
+        // Handle edit student
+        async function editStudent(studentId) {
+          // Implement edit functionality
+          console.log('Edit student:', studentId);
+        }
+
+        // Handle delete student
+        async function deleteStudent(studentId) {
+          if (confirm('Are you sure you want to delete this student?')) {
+            try {
+              const response = await fetch('/api/students/' + studentId, {
+                method: 'DELETE'
+              });
+
+              if (response.ok) {
+                fetchStudents();
+              } else {
+                const error = await response.json();
+                alert(error.message || 'Failed to delete student');
+              }
+            } catch (error) {
+              console.error('Error deleting student:', error);
+              alert('Failed to delete student');
+            }
+          }
+        }
+
+        // Load students when page loads
+        document.addEventListener('DOMContentLoaded', fetchStudents);
+      </script>
     </body>
     </html>
   `);
