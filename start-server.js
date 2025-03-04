@@ -428,6 +428,27 @@ app.delete('/users/:id', async (req, res) => {
 app.get('/api/students', async (req, res) => {
   try {
     console.log('Fetching all students from database...');
+    
+    // First check if we can connect to the database
+    const testConnection = await pool.query('SELECT NOW()');
+    console.log('Database connection test successful');
+    
+    // Then check if the student table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'student'
+      )`
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      console.error('Student table does not exist');
+      return res.status(500).json({ 
+        error: 'Database table not found',
+        details: 'The student table does not exist' 
+      });
+    }
+
     const result = await pool.query(`
       SELECT 
         student_id,
