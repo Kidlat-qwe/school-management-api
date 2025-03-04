@@ -431,24 +431,27 @@ app.get('/api/students', async (req, res) => {
     
     // First check if we can connect to the database
     const testConnection = await pool.query('SELECT NOW()');
-    console.log('Database connection test successful');
+    console.log('Database connection test successful:', testConnection.rows[0].now);
     
     // Then check if the student table exists
     const tableCheck = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
-        WHERE table_name = 'student'
+        WHERE table_schema = 'public' 
+        AND table_name = 'student'
       )`
     );
     
     if (!tableCheck.rows[0].exists) {
-      console.error('Student table does not exist');
+      console.error('Student table does not exist in the public schema');
       return res.status(500).json({ 
         error: 'Database table not found',
-        details: 'The student table does not exist' 
+        details: 'The student table does not exist in the public schema' 
       });
     }
 
+    console.log('Student table exists, fetching data...');
+    
     const result = await pool.query(`
       SELECT 
         student_id,
@@ -463,12 +466,28 @@ app.get('/api/students', async (req, res) => {
     `);
     
     console.log(`Found ${result.rows.length} students`);
+    
+    if (!result.rows || !Array.isArray(result.rows)) {
+      console.error('Invalid data format from database:', result.rows);
+      return res.status(500).json({
+        error: 'Invalid data format',
+        details: 'Database returned unexpected data format'
+      });
+    }
+    
     res.json(result.rows);
   } catch (error) {
-    console.error('Error fetching students:', error);
+    console.error('Detailed error in /api/students:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail
+    });
+    
     res.status(500).json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error.message,
+      code: error.code
     });
   }
 });
