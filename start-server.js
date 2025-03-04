@@ -1568,19 +1568,27 @@ app.get('/students', (req, res) => {
         async function fetchStudents() {
           try {
             const response = await fetch('/api/students');
+            if (!response.ok) {
+              throw new Error('HTTP error! status: ' + response.status);
+            }
             const students = await response.json();
+            
+            if (!Array.isArray(students)) {
+              console.error('Expected array of students but got:', students);
+              throw new Error('Invalid data format received from server');
+            }
             
             const tableBody = document.getElementById('studentsTableBody');
             tableBody.innerHTML = students.map(student => 
               '<tr>' +
-                '<td>' + student.student_id + '</td>' +
-                '<td>' + student.fname + '</td>' +
+                '<td>' + (student.student_id || 'N/A') + '</td>' +
+                '<td>' + (student.fname || 'N/A') + '</td>' +
                 '<td>' + (student.mname || '-') + '</td>' +
-                '<td>' + student.lname + '</td>' +
-                '<td>' + student.gender + '</td>' +
-                '<td>' + student.age + '</td>' +
+                '<td>' + (student.lname || 'N/A') + '</td>' +
+                '<td>' + (student.gender || 'N/A') + '</td>' +
+                '<td>' + (student.age || 'N/A') + '</td>' +
                 '<td>' +
-                  '<span class="status-' + (student.status?.toLowerCase() === 'active' ? 'active' : 'inactive') + '">' +
+                  '<span class="status-' + ((student.status || '').toLowerCase() === 'active' ? 'active' : 'inactive') + '">' +
                     (student.status || 'N/A') +
                   '</span>' +
                 '</td>' +
@@ -1588,7 +1596,8 @@ app.get('/students', (req, res) => {
             ).join('');
           } catch (error) {
             console.error('Error fetching students:', error);
-            alert('Failed to load students data. Please try again later.');
+            document.getElementById('studentsTableBody').innerHTML = 
+              '<tr><td colspan="7" style="text-align: center; color: #dc2626;">Failed to load students data. Please try again later.</td></tr>';
           }
         }
 
