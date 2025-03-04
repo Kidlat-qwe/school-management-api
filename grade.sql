@@ -1,3 +1,85 @@
+CREATE DATABASE school_db;
+\c school_db;
+
+-- Users Table
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    user_type VARCHAR(20) NOT NULL,
+    flag BOOLEAN DEFAULT TRUE
+);
+
+-- School Year Table
+CREATE TABLE school_year (
+    school_year_id SERIAL PRIMARY KEY,
+    school_year VARCHAR(10) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- Student Table
+CREATE TABLE student (
+    student_id SERIAL PRIMARY KEY,
+    fname VARCHAR(50) NOT NULL,
+    mname VARCHAR(50),
+    lname VARCHAR(50) NOT NULL,
+    gender VARCHAR(1),
+    age INTEGER,
+    user_id INTEGER REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+-- Teacher Table
+CREATE TABLE teacher (
+    teacher_id SERIAL PRIMARY KEY,
+    fname VARCHAR(50) NOT NULL,
+    mname VARCHAR(50),
+    lname VARCHAR(50) NOT NULL,
+    gender VARCHAR(1),
+    status BOOLEAN DEFAULT TRUE,
+    user_id INTEGER REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+-- Subject Table
+CREATE TABLE subject (
+    subject_id SERIAL PRIMARY KEY,
+    subject_name VARCHAR(50) NOT NULL
+);
+
+-- Class Table
+CREATE TABLE class (
+    class_id SERIAL PRIMARY KEY,
+    grade_level VARCHAR(20) NOT NULL,
+    section VARCHAR(1) NOT NULL,
+    class_description VARCHAR(50),
+    school_year VARCHAR(10) NOT NULL
+);
+
+-- Student Grade Table
+CREATE TABLE student_grade (
+    student_id INTEGER REFERENCES student(student_id) ON DELETE CASCADE,
+    class_id INTEGER REFERENCES class(class_id) ON DELETE CASCADE,
+    subject_id INTEGER REFERENCES subject(subject_id) ON DELETE CASCADE,
+    teacher_id INTEGER REFERENCES teacher(teacher_id) ON DELETE CASCADE,
+    quarter INTEGER CHECK (quarter BETWEEN 1 AND 4),
+    grade NUMERIC(5,2),
+    PRIMARY KEY (student_id, class_id, subject_id, quarter)
+);
+
+-- Class-Student Table
+CREATE TABLE class_student (
+    class_id INTEGER REFERENCES class(class_id) ON DELETE CASCADE,
+    student_id INTEGER REFERENCES student(student_id) ON DELETE CASCADE,
+    PRIMARY KEY (class_id, student_id)
+);
+
+-- Class-Subject Table
+CREATE TABLE class_subject (
+    class_id INTEGER REFERENCES class(class_id) ON DELETE CASCADE,
+    subject_id INTEGER REFERENCES subject(subject_id) ON DELETE CASCADE,
+    teacher_id INTEGER REFERENCES teacher(teacher_id) ON DELETE CASCADE,
+    PRIMARY KEY (class_id, subject_id, teacher_id)
+);
+
 -- Insert Users
 INSERT INTO users (username, password, user_type, flag) VALUES
 ('admin', 'Admin@123', 'Admin', TRUE),
