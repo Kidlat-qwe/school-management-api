@@ -236,7 +236,7 @@ app.post('/api/teachers', async (req, res) => {
       // Get the highest existing teacher_id
       const maxIdResult = await pool.query('SELECT MAX(CAST(teacher_id AS INTEGER)) as max_id FROM teacher');
       const maxId = maxIdResult.rows[0].max_id || 0;
-      finalTeacherId = (parseInt(maxId) + 1).toString();
+      finalTeacherId = (parseInt(maxId) + 1).toString();  
     }
     
     console.log('Adding teacher with ID:', finalTeacherId);
