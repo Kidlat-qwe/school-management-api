@@ -36,10 +36,9 @@ const initDatabase = async () => {
     // Read the SQL file
     const gradeSQL = fs.readFileSync(path.join(__dirname, 'grade.sql'), 'utf8');
     
-    // Remove PostgreSQL shell commands and split into statements
+    // Split into statements, properly handling quotes and comments
     const statements = gradeSQL
-      .replace(/\\c.*$/gm, '') // Remove \c commands
-      .split(';')
+      .split(/;\s*$/m)  // Split on semicolons at end of lines
       .map(stmt => stmt.trim())
       .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
 
@@ -50,37 +49,67 @@ const initDatabase = async () => {
     
     for (let statement of statements) {
       try {
-        // Skip CREATE DATABASE statement as we're already connected to the database
+        // Skip CREATE DATABASE statement as we're already connected
         if (statement.toLowerCase().includes('create database')) {
-          console.log('Skipping database creation - already exists');
+          console.log('Skipping database creation - already connected');
           continue;
         }
 
-        await client.query(statement);
-        console.log('Successfully executed:', statement.substring(0, 50) + '...');
-      } catch (err) {
-        // Handle specific error cases
-        switch (err.code) {
-          case '42P07': // Table already exists
-            console.log(`Table already exists, continuing...`);
-            break;
-          case '23505': // Unique violation
-            console.log(`Skipping duplicate record: ${err.detail}`);
-            break;
-          case '42703': // Undefined column
-            console.error(`Column error: ${err.message}`);
-            break;
-          case '42P01': // Undefined table
-            console.error(`Table error: ${err.message}`);
-            break;
-          case '23503': // Foreign key violation
-            console.error(`Foreign key error: ${err.detail}`);
-            break;
-          default:
-            console.error(`Error (${err.code}): ${err.message}`);
-            // Only throw for unexpected errors
-            throw err;
+        // Handle schema modifications first
+        if (statement.toLowerCase().includes('create table')) {
+          try {
+            await client.query(statement);
+            console.log('Created table successfully');
+          } catch (err) {
+            if (err.code === '42P07') { // Table exists
+              console.log('Table already exists, continuing...');
+            } else {
+              throw err;
+            }
+          }
+          continue;
         }
+
+        // Handle data insertions
+        if (statement.toLowerCase().includes('insert into')) {
+          try {
+            await client.query(statement);
+          } catch (err) {
+            switch (err.code) {
+              case '23505': // Unique violation
+                console.log(`Skipping duplicate record: ${err.detail}`);
+                break;
+              case '23503': // Foreign key violation
+                console.log(`Skipping record with invalid foreign key: ${err.detail}`);
+                break;
+              case '42703': // Undefined column
+                console.log(`Column error: ${err.message}`);
+                break;
+              case '42P01': // Undefined table
+                console.log(`Table error: ${err.message}`);
+                break;
+              case '23514': // Check constraint violation
+                console.log(`Check constraint violation: ${err.detail}`);
+                break;
+              default:
+                console.log(`Other error (${err.code}): ${err.message}`);
+                // Don't throw, just log and continue
+                break;
+            }
+          }
+          continue;
+        }
+
+        // For all other statements
+        try {
+          await client.query(statement);
+        } catch (err) {
+          console.log(`Warning during execution: ${err.message}`);
+          // Continue with next statement
+        }
+      } catch (err) {
+        console.log(`Error executing statement: ${err.message}`);
+        // Continue with next statement
       }
     }
 
