@@ -29,14 +29,12 @@ pool.connect()
     console.error('❌ Error connecting to PostgreSQL database:', err);
   });
 
-module.exports = pool;
-
-// Initialize database
+// Initialize database with grade.sql
 const initDatabase = async () => {
   try {
-    const initSQL = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf8');
-    await pool.query(initSQL);
-    console.log('✅ Database initialized successfully!');
+    const gradeSQL = fs.readFileSync(path.join(__dirname, 'grade.sql'), 'utf8');
+    await pool.query(gradeSQL);
+    console.log('✅ Database initialized successfully with grade.sql!');
   } catch (error) {
     console.error('❌ Error initializing database:', error);
   }
@@ -44,6 +42,8 @@ const initDatabase = async () => {
 
 // Call this before starting your server
 initDatabase();
+
+module.exports = pool;
 
 // GET endpoint to fetch all subjects
 app.get('/api/subjects', async (req, res) => {
