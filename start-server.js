@@ -51,6 +51,25 @@ const initDatabase = async () => {
     await client.query('BEGIN');
     
     console.log('Starting database initialization...');
+
+    // First, drop all existing tables in the correct order to avoid foreign key conflicts
+    try {
+      await client.query(`
+        DROP TABLE IF EXISTS 
+          student_grade,
+          class_student,
+          class_subject,
+          student,
+          teacher,
+          subject,
+          class,
+          school_year,
+          users CASCADE
+      `);
+      console.log('✅ Cleaned up existing tables');
+    } catch (err) {
+      console.log('Note: No existing tables to clean up');
+    }
     
     // Execute each statement
     for (let statement of statements) {
@@ -86,6 +105,13 @@ const initDatabase = async () => {
           throw err; // Rethrow to trigger rollback
         }
       }
+    }
+
+    // Verify the initialization
+    const tables = ['users', 'school_year', 'student', 'teacher', 'subject', 'class', 'student_grade', 'class_student', 'class_subject'];
+    for (const table of tables) {
+      const result = await client.query(`SELECT COUNT(*) FROM ${table}`);
+      console.log(`📊 ${table}: ${result.rows[0].count} records`);
     }
 
     // Commit the transaction
