@@ -36,11 +36,16 @@ const initDatabase = async () => {
     // Read the SQL file
     const gradeSQL = fs.readFileSync(path.join(__dirname, 'grade.sql'), 'utf8');
     
-    // Split into statements, properly handling quotes and comments
+    // Split into statements and filter out psql commands and comments
     const statements = gradeSQL
       .split(/;\s*$/m)  // Split on semicolons at end of lines
       .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
+      .filter(stmt => {
+        // Skip empty statements, comments, and psql commands
+        return stmt.length > 0 && 
+               !stmt.startsWith('--') && 
+               !stmt.startsWith('\\');
+      });
 
     // Start a transaction
     await client.query('BEGIN');
@@ -59,12 +64,12 @@ const initDatabase = async () => {
         if (statement.toLowerCase().includes('create table')) {
           try {
             await client.query(statement);
-            console.log('Created table successfully');
+            console.log('Created table successfully:', statement.split('(')[0]);
           } catch (err) {
             if (err.code === '42P07') { // Table exists
-              console.log('Table already exists, continuing...');
+              console.log('Table already exists:', statement.split('(')[0]);
             } else {
-              throw err;
+              console.error('Error creating table:', err.message);
             }
           }
           continue;
@@ -74,6 +79,7 @@ const initDatabase = async () => {
         if (statement.toLowerCase().includes('insert into')) {
           try {
             await client.query(statement);
+            console.log('Inserted data successfully');
           } catch (err) {
             switch (err.code) {
               case '23505': // Unique violation
@@ -93,7 +99,6 @@ const initDatabase = async () => {
                 break;
               default:
                 console.log(`Other error (${err.code}): ${err.message}`);
-                // Don't throw, just log and continue
                 break;
             }
           }
@@ -103,13 +108,12 @@ const initDatabase = async () => {
         // For all other statements
         try {
           await client.query(statement);
+          console.log('Executed statement successfully');
         } catch (err) {
           console.log(`Warning during execution: ${err.message}`);
-          // Continue with next statement
         }
       } catch (err) {
         console.log(`Error executing statement: ${err.message}`);
-        // Continue with next statement
       }
     }
 
