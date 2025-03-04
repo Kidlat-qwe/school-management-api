@@ -33,7 +33,14 @@ pool.connect()
 const initDatabase = async () => {
   try {
     const gradeSQL = fs.readFileSync(path.join(__dirname, 'grade.sql'), 'utf8');
-    await pool.query(gradeSQL);
+    // Split the SQL file into individual statements
+    const statements = gradeSQL.split(';').filter(stmt => stmt.trim());
+    
+    for (let statement of statements) {
+      if (statement.trim()) {
+        await pool.query(statement);
+      }
+    }
     console.log('✅ Database initialized successfully with grade.sql!');
   } catch (error) {
     console.error('❌ Error initializing database:', error);
@@ -459,8 +466,7 @@ app.get('/api/students', async (req, res) => {
         mname,
         lname,
         gender,
-        age,
-        status
+        age
       FROM student 
       ORDER BY lname, fname
     `);
@@ -1545,24 +1551,6 @@ app.get('/students', (req, res) => {
         .students-table tbody tr:hover {
           background: #f8fafc;
         }
-
-        .status-active {
-          color: #059669;
-          background: #d1fae5;
-          padding: 0.25rem 0.5rem;
-          border-radius: 9999px;
-          font-size: 0.75rem;
-          font-weight: 500;
-        }
-
-        .status-inactive {
-          color: #dc2626;
-          background: #fee2e2;
-          padding: 0.25rem 0.5rem;
-          border-radius: 9999px;
-          font-size: 0.75rem;
-          font-weight: 500;
-        }
       </style>
     </head>
     <body>
@@ -1594,7 +1582,6 @@ app.get('/students', (req, res) => {
               <th>Last Name</th>
               <th>Gender</th>
               <th>Age</th>
-              <th>Status</th>
             </tr>
           </thead>
           <tbody id="studentsTableBody">
@@ -1627,17 +1614,12 @@ app.get('/students', (req, res) => {
                 '<td>' + (student.lname || 'N/A') + '</td>' +
                 '<td>' + (student.gender || 'N/A') + '</td>' +
                 '<td>' + (student.age || 'N/A') + '</td>' +
-                '<td>' +
-                  '<span class="status-' + ((student.status || '').toLowerCase() === 'active' ? 'active' : 'inactive') + '">' +
-                    (student.status || 'N/A') +
-                  '</span>' +
-                '</td>' +
               '</tr>'
             ).join('');
           } catch (error) {
             console.error('Error fetching students:', error);
             document.getElementById('studentsTableBody').innerHTML = 
-              '<tr><td colspan="7" style="text-align: center; color: #dc2626;">Failed to load students data. Please try again later.</td></tr>';
+              '<tr><td colspan="6" style="text-align: center; color: #dc2626;">Failed to load students data. Please try again later.</td></tr>';
           }
         }
 
