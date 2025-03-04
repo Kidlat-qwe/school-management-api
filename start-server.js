@@ -1180,6 +1180,226 @@ app.delete('/api/students/:id', async (req, res) => {
   }
 });
 
+// Grade Management Endpoints
+
+// Get all grades for a specific student
+app.get('/api/grades/student/:studentId', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const result = await pool.query(`
+      SELECT 
+        g.grade_id,
+        g.student_id,
+        g.subject_id,
+        g.quarter,
+        g.grade,
+        g.school_year,
+        s.subject_name,
+        t.fname || ' ' || t.lname as teacher_name
+      FROM grade g
+      JOIN subject s ON g.subject_id = s.subject_id
+      LEFT JOIN teacher t ON g.teacher_id = t.teacher_id
+      WHERE g.student_id = $1
+      ORDER BY g.school_year DESC, s.subject_name, g.quarter
+    `, [studentId]);
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching student grades:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add a new grade
+app.post('/api/grades', async (req, res) => {
+  try {
+    const { 
+      student_id, 
+      subject_id, 
+      teacher_id,
+      quarter, 
+      grade,
+      school_year 
+    } = req.body;
+
+    // Validate required fields
+    if (!student_id || !subject_id || !quarter || !grade || !school_year) {
+      return res.status(400).json({ 
+        error: 'Missing required fields' 
+      });
+    }
+
+    // Validate grade range (0-100)
+    if (grade < 0 || grade > 100) {
+      return res.status(400).json({ 
+        error: 'Grade must be between 0 and 100' 
+      });
+    }
+
+    // Validate quarter (1-4)
+    if (quarter < 1 || quarter > 4) {
+      return res.status(400).json({ 
+        error: 'Quarter must be between 1 and 4' 
+      });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO grade (
+        student_id, 
+        subject_id, 
+        teacher_id,
+        quarter, 
+        grade, 
+        school_year
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6) 
+      RETURNING *
+    `, [student_id, subject_id, teacher_id, quarter, grade, school_year]);
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error adding grade:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update a grade
+app.put('/api/grades/:gradeId', async (req, res) => {
+  try {
+    const { gradeId } = req.params;
+    const { grade } = req.body;
+
+    // Validate grade range
+    if (grade < 0 || grade > 100) {
+      return res.status(400).json({ 
+        error: 'Grade must be between 0 and 100' 
+      });
+    }
+
+    const result = await pool.query(`
+      UPDATE grade 
+      SET grade = $1 
+      WHERE grade_id = $2 
+      RETURNING *
+    `, [grade, gradeId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Grade not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating grade:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete a grade
+app.delete('/api/grades/:gradeId', async (req, res) => {
+  try {
+    const { gradeId } = req.params;
+    const result = await pool.query(
+      'DELETE FROM grade WHERE grade_id = $1 RETURNING *',
+      [gradeId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Grade not found' });
+    }
+
+    res.json({ message: 'Grade deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting grade:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get class grades (for a specific class and subject)
+app.get('/api/grades/class/:classId/subject/:subjectId', async (req, res) => {
+  try {
+    const { classId, subjectId } = req.params;
+    const result = await pool.query(`
+      SELECT 
+        s.student_id,
+        s.fname || ' ' || s.lname as student_name,
+        g.quarter,
+        g.grade
+      FROM student s
+      JOIN class_student cs ON s.student_id = cs.student_id
+      LEFT JOIN grade g ON s.student_id = g.student_id 
+        AND g.subject_id = $2
+      WHERE cs.class_id = $1
+      ORDER BY s.lname, s.fname, g.quarter
+    `, [classId, subjectId]);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching class grades:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get teacher's given grades
+app.get('/api/grades/teacher/:teacherId', async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    const result = await pool.query(`
+      SELECT 
+        g.grade_id,
+        s.fname || ' ' || s.lname as student_name,
+        sub.subject_name,
+        g.quarter,
+        g.grade,
+        g.school_year
+      FROM grade g
+      JOIN student s ON g.student_id = s.student_id
+      JOIN subject sub ON g.subject_id = sub.subject_id
+      WHERE g.teacher_id = $1
+      ORDER BY g.school_year DESC, sub.subject_name, s.lname, g.quarter
+    `, [teacherId]);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching teacher grades:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get grade statistics for a class
+app.get('/api/grades/stats/class/:classId', async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const result = await pool.query(`
+      WITH grade_stats AS (
+        SELECT 
+          s.subject_name,
+          COUNT(g.grade) as total_grades,
+          ROUND(AVG(g.grade)::numeric, 2) as average_grade,
+          MIN(g.grade) as lowest_grade,
+          MAX(g.grade) as highest_grade
+        FROM class_subject cs
+        JOIN subject s ON cs.subject_id = s.subject_id
+        LEFT JOIN grade g ON s.subject_id = g.subject_id
+        WHERE cs.class_id = $1
+        GROUP BY s.subject_name
+      )
+      SELECT 
+        subject_name,
+        total_grades,
+        average_grade,
+        lowest_grade,
+        highest_grade
+      FROM grade_stats
+      ORDER BY subject_name
+    `, [classId]);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching grade statistics:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 //THE API ENDPOINTS FRONTEND
 app.get('/', (req, res) => {
   res.send(`
