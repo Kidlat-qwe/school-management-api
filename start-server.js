@@ -32,18 +32,36 @@ pool.connect()
 // Initialize database with grade.sql
 const initDatabase = async () => {
   try {
+    // Read and execute the SQL file
     const gradeSQL = fs.readFileSync(path.join(__dirname, 'grade.sql'), 'utf8');
-    // Split the SQL file into individual statements
-    const statements = gradeSQL.split(';').filter(stmt => stmt.trim());
     
+    // Split the SQL file into individual statements and filter out empty ones
+    const statements = gradeSQL
+      .split(';')
+      .map(stmt => stmt.trim())
+      .filter(stmt => stmt.length > 0);
+    
+    // Execute each statement
     for (let statement of statements) {
-      if (statement.trim()) {
+      try {
         await pool.query(statement);
+      } catch (err) {
+        // Ignore "already exists" errors
+        if (err.code === '42P04') {
+          console.log('Database already exists, continuing with initialization...');
+          continue;
+        }
+        if (err.code === '42P07') {
+          console.log('Table already exists, continuing with initialization...');
+          continue;
+        }
+        // For other errors, log them but continue processing
+        console.warn('Warning during initialization:', err.message);
       }
     }
-    console.log('✅ Database initialized successfully with grade.sql!');
+    console.log('✅ Database initialization completed!');
   } catch (error) {
-    console.error('❌ Error initializing database:', error);
+    console.error('❌ Error reading or processing grade.sql:', error);
   }
 };
 
