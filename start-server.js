@@ -14,7 +14,7 @@ app.use(express.json());
 
 // Database connection configuration that works both locally and on Render
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:admin@localhost:5432/grade',
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:admin@localhost:5432/school_db',
   ssl: process.env.DATABASE_URL ? {
     rejectUnauthorized: false
   } : false
@@ -31,42 +31,77 @@ pool.connect()
 
 // Initialize database with grade.sql
 const initDatabase = async () => {
+  const client = await pool.connect();
   try {
-    // Read and execute the SQL file
+    // Read the SQL file
     const gradeSQL = fs.readFileSync(path.join(__dirname, 'grade.sql'), 'utf8');
     
-    // Split the SQL file into individual statements and filter out empty ones
+    // Remove PostgreSQL shell commands and split into statements
     const statements = gradeSQL
+      .replace(/\\c.*$/gm, '') // Remove \c commands
       .split(';')
       .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0);
+      .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
+
+    // Start a transaction
+    await client.query('BEGIN');
     
-    // Execute each statement
+    console.log('Starting database initialization...');
+    
     for (let statement of statements) {
       try {
-        await pool.query(statement);
+        // Skip CREATE DATABASE statement as we're already connected to the database
+        if (statement.toLowerCase().includes('create database')) {
+          console.log('Skipping database creation - already exists');
+          continue;
+        }
+
+        await client.query(statement);
+        console.log('Successfully executed:', statement.substring(0, 50) + '...');
       } catch (err) {
-        // Ignore "already exists" errors
-        if (err.code === '42P04') {
-          console.log('Database already exists, continuing with initialization...');
-          continue;
+        // Handle specific error cases
+        switch (err.code) {
+          case '42P07': // Table already exists
+            console.log(`Table already exists, continuing...`);
+            break;
+          case '23505': // Unique violation
+            console.log(`Skipping duplicate record: ${err.detail}`);
+            break;
+          case '42703': // Undefined column
+            console.error(`Column error: ${err.message}`);
+            break;
+          case '42P01': // Undefined table
+            console.error(`Table error: ${err.message}`);
+            break;
+          case '23503': // Foreign key violation
+            console.error(`Foreign key error: ${err.detail}`);
+            break;
+          default:
+            console.error(`Error (${err.code}): ${err.message}`);
+            // Only throw for unexpected errors
+            throw err;
         }
-        if (err.code === '42P07') {
-          console.log('Table already exists, continuing with initialization...');
-          continue;
-        }
-        // For other errors, log them but continue processing
-        console.warn('Warning during initialization:', err.message);
       }
     }
-    console.log('✅ Database initialization completed!');
+
+    // Commit the transaction
+    await client.query('COMMIT');
+    console.log('✅ Database initialization completed successfully!');
   } catch (error) {
-    console.error('❌ Error reading or processing grade.sql:', error);
+    // Rollback on error
+    await client.query('ROLLBACK');
+    console.error('❌ Error during database initialization:', error);
+    throw error;
+  } finally {
+    client.release();
   }
 };
 
 // Call this before starting your server
-initDatabase();
+initDatabase().catch(err => {
+  console.error('Failed to initialize database:', err);
+  process.exit(1);
+});
 
 module.exports = pool;
 
