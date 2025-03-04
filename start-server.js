@@ -50,21 +50,25 @@ const initDatabase = async () => {
 
     console.log('🚀 Starting database initialization...');
 
-    // First execute all CREATE TABLE statements
+    // First execute all CREATE TABLE statements in order
     console.log('📦 Creating tables...');
-    for (let statement of statements) {
-      if (statement.toLowerCase().includes('create table')) {
-        try {
-          await client.query(statement);
+    const createTableStatements = statements.filter(stmt => 
+      stmt.toLowerCase().includes('create table')
+    );
+
+    // Execute CREATE TABLE statements in order of dependencies
+    for (let statement of createTableStatements) {
+      try {
+        await client.query(statement);
+        const tableName = statement.match(/create table (\w+)/i)?.[1];
+        console.log(`✅ Created table: ${tableName}`);
+      } catch (err) {
+        if (err.code === '42P07') { // duplicate_table
           const tableName = statement.match(/create table (\w+)/i)?.[1];
-          console.log(`✅ Created table: ${tableName}`);
-        } catch (err) {
-          if (err.code === '42P07') { // duplicate_table
-            const tableName = statement.match(/create table (\w+)/i)?.[1];
-            console.log(`⚠️ Table ${tableName} already exists, continuing...`);
-          } else {
-            throw err;
-          }
+          console.log(`⚠️ Table ${tableName} already exists, continuing...`);
+        } else {
+          console.error(`❌ Error creating table:`, err);
+          throw err;
         }
       }
     }
@@ -74,21 +78,23 @@ const initDatabase = async () => {
     await client.query('BEGIN');
 
     try {
-      for (let statement of statements) {
-        if (statement.toLowerCase().includes('insert into')) {
-          try {
-            await client.query(statement);
-            const tableName = statement.match(/insert into (\w+)/i)?.[1];
-            console.log(`✅ Inserted data into: ${tableName}`);
-          } catch (err) {
-            if (err.code === '23505') { // unique_violation
-              console.log(`⚠️ Duplicate data found, skipping...`);
-            } else if (err.code === '42P01') { // undefined_table
-              console.log(`⚠️ Table does not exist yet, skipping insert...`);
-              continue;
-            } else {
-              throw err;
-            }
+      const insertStatements = statements.filter(stmt => 
+        stmt.toLowerCase().includes('insert into')
+      );
+
+      for (let statement of insertStatements) {
+        try {
+          await client.query(statement);
+          const tableName = statement.match(/insert into (\w+)/i)?.[1];
+          console.log(`✅ Inserted data into: ${tableName}`);
+        } catch (err) {
+          if (err.code === '23505') { // unique_violation
+            console.log(`⚠️ Duplicate data found, skipping...`);
+          } else if (err.code === '42P01') { // undefined_table
+            console.log(`⚠️ Table does not exist yet, skipping insert...`);
+            continue;
+          } else {
+            throw err;
           }
         }
       }
