@@ -83,6 +83,9 @@ const initDatabase = async () => {
           } catch (err) {
             if (err.code === '23505') { // unique_violation
               console.log(`⚠️ Duplicate data found, skipping...`);
+            } else if (err.code === '42P01') { // undefined_table
+              console.log(`⚠️ Table does not exist yet, skipping insert...`);
+              continue;
             } else {
               throw err;
             }
@@ -90,13 +93,29 @@ const initDatabase = async () => {
         }
       }
 
-      // Verify the data
+      // Verify the data only for tables that exist
       console.log('\n🔍 Verifying database tables:');
       const tables = ['users', 'school_year', 'student', 'teacher', 'subject', 'class', 'student_grade', 'class_student', 'class_subject'];
       
       for (const table of tables) {
-        const result = await client.query(`SELECT COUNT(*) FROM ${table}`);
-        console.log(`✅ ${table}: ${result.rows[0].count} records`);
+        try {
+          // Check if table exists first
+          const tableExists = await client.query(`
+            SELECT EXISTS (
+              SELECT FROM information_schema.tables 
+              WHERE table_schema = 'public' 
+              AND table_name = $1
+            )`, [table]);
+          
+          if (tableExists.rows[0].exists) {
+            const result = await client.query(`SELECT COUNT(*) FROM ${table}`);
+            console.log(`✅ ${table}: ${result.rows[0].count} records`);
+          } else {
+            console.log(`⚠️ ${table}: Table does not exist`);
+          }
+        } catch (err) {
+          console.log(`❌ Error verifying ${table}: ${err.message}`);
+        }
       }
 
       await client.query('COMMIT');
