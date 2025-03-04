@@ -33,8 +33,8 @@ module.exports = pool;
 // Initialize database
 const initDatabase = async () => {
   try {
-    const initSQL = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf8');
-    await pool.query(initSQL);
+    const gradeSQL = fs.readFileSync(path.join(__dirname, 'grade.sql'), 'utf8');
+    await pool.query(gradeSQL);
     console.log('✅ Database initialized successfully!');
   } catch (error) {
     console.error('❌ Error initializing database:', error);
