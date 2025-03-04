@@ -51,7 +51,26 @@ const initDatabase = async () => {
     // Start a transaction
     await client.query('BEGIN');
     
-    console.log('🚀 Starting database initialization...');
+    console.log('🚀 Starting database reinitialization...');
+
+    // First, drop all existing tables in the correct order to avoid foreign key conflicts
+    try {
+      await client.query(`
+        DROP TABLE IF EXISTS 
+          student_grade,
+          class_student,
+          class_subject,
+          student,
+          teacher,
+          subject,
+          class,
+          school_year,
+          users CASCADE
+      `);
+      console.log('🗑️ Cleaned up existing tables');
+    } catch (err) {
+      console.log('Note: No existing tables to clean up');
+    }
 
     // Execute each statement
     for (let statement of statements) {
@@ -67,18 +86,9 @@ const initDatabase = async () => {
           console.log(`📝 Inserted data into: ${tableName}`);
         }
       } catch (err) {
-        // Handle specific error cases
-        if (err.code === '42P07') { // duplicate_table
-          console.log(`⚠️ Table already exists, continuing...`);
-          continue;
-        } else if (err.code === '23505') { // unique_violation
-          console.log(`⚠️ Duplicate key violation, skipping insert...`);
-          continue;
-        } else {
-          console.error('❌ Error executing statement:', err.message);
-          console.error('Problematic statement:', statement);
-          throw err; // Rethrow to trigger rollback
-        }
+        console.error('❌ Error executing statement:', err.message);
+        console.error('Problematic statement:', statement);
+        throw err; // Rethrow to trigger rollback
       }
     }
 
@@ -95,11 +105,11 @@ const initDatabase = async () => {
 
     // Commit the transaction
     await client.query('COMMIT');
-    console.log('✅ Database initialization completed successfully!');
+    console.log('✅ Database reinitialization completed successfully!');
   } catch (error) {
     // Rollback on error
     await client.query('ROLLBACK');
-    console.error('❌ Error during database initialization:', error);
+    console.error('❌ Error during database reinitialization:', error);
     throw error;
   } finally {
     client.release();
