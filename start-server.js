@@ -52,25 +52,7 @@ const initDatabase = async () => {
     
     console.log('Starting database initialization...');
     
-    // First, drop all existing tables to ensure clean state
-    try {
-      await client.query(`
-        DROP TABLE IF EXISTS 
-          student_grade, 
-          class_student, 
-          class_subject,
-          student,
-          teacher,
-          subject,
-          class,
-          school_year,
-          users CASCADE
-      `);
-      console.log('Cleaned up existing tables');
-    } catch (err) {
-      console.log('Error during cleanup:', err.message);
-    }
-    
+    // Execute each statement
     for (let statement of statements) {
       try {
         // Skip CREATE DATABASE statement as we're already connected
@@ -84,22 +66,27 @@ const initDatabase = async () => {
         
         // Log success based on statement type
         if (statement.toLowerCase().includes('create table')) {
-          console.log('Created table:', statement.split('(')[0].replace(/CREATE TABLE/i, '').trim());
+          const tableName = statement.match(/create table (\w+)/i)?.[1];
+          console.log(`✅ Created table: ${tableName}`);
         } else if (statement.toLowerCase().includes('insert into')) {
-          console.log('Inserted data into:', statement.split('(')[0].replace(/INSERT INTO/i, '').trim());
-        } else {
-          console.log('Executed statement successfully');
+          const tableName = statement.match(/insert into (\w+)/i)?.[1];
+          console.log(`📝 Inserted data into: ${tableName}`);
         }
       } catch (err) {
-        console.error('Error executing statement:', err.message);
-        console.error('Problematic statement:', statement);
-        throw err; // Rethrow to trigger rollback
+        // Handle specific error cases
+        if (err.code === '42P07') { // duplicate_table
+          console.log(`Table already exists, continuing...`);
+          continue;
+        } else if (err.code === '23505') { // unique_violation
+          console.log(`Duplicate key violation, skipping insert...`);
+          continue;
+        } else {
+          console.error('❌ Error executing statement:', err.message);
+          console.error('Problematic statement:', statement);
+          throw err; // Rethrow to trigger rollback
+        }
       }
     }
-
-    // Verify the data
-    const studentCount = await client.query('SELECT COUNT(*) FROM student');
-    console.log(`Verified student count: ${studentCount.rows[0].count}`);
 
     // Commit the transaction
     await client.query('COMMIT');
