@@ -44,43 +44,18 @@ const initDatabase = async () => {
         // Skip empty statements, comments, and psql commands
         return stmt.length > 0 && 
                !stmt.startsWith('--') && 
-               !stmt.startsWith('\\');
+               !stmt.startsWith('\\') &&
+               !stmt.toLowerCase().includes('create database');
       });
 
     // Start a transaction
     await client.query('BEGIN');
     
-    console.log('Starting database initialization...');
+    console.log('🚀 Starting database initialization...');
 
-    // First, drop all existing tables in the correct order to avoid foreign key conflicts
-    try {
-      await client.query(`
-        DROP TABLE IF EXISTS 
-          student_grade,
-          class_student,
-          class_subject,
-          student,
-          teacher,
-          subject,
-          class,
-          school_year,
-          users CASCADE
-      `);
-      console.log('✅ Cleaned up existing tables');
-    } catch (err) {
-      console.log('Note: No existing tables to clean up');
-    }
-    
     // Execute each statement
     for (let statement of statements) {
       try {
-        // Skip CREATE DATABASE statement as we're already connected
-        if (statement.toLowerCase().includes('create database')) {
-          console.log('Skipping database creation - already connected');
-          continue;
-        }
-
-        // Execute the statement
         await client.query(statement);
         
         // Log success based on statement type
@@ -94,10 +69,10 @@ const initDatabase = async () => {
       } catch (err) {
         // Handle specific error cases
         if (err.code === '42P07') { // duplicate_table
-          console.log(`Table already exists, continuing...`);
+          console.log(`⚠️ Table already exists, continuing...`);
           continue;
         } else if (err.code === '23505') { // unique_violation
-          console.log(`Duplicate key violation, skipping insert...`);
+          console.log(`⚠️ Duplicate key violation, skipping insert...`);
           continue;
         } else {
           console.error('❌ Error executing statement:', err.message);
@@ -110,8 +85,12 @@ const initDatabase = async () => {
     // Verify the initialization
     const tables = ['users', 'school_year', 'student', 'teacher', 'subject', 'class', 'student_grade', 'class_student', 'class_subject'];
     for (const table of tables) {
-      const result = await client.query(`SELECT COUNT(*) FROM ${table}`);
-      console.log(`📊 ${table}: ${result.rows[0].count} records`);
+      try {
+        const result = await client.query(`SELECT COUNT(*) FROM ${table}`);
+        console.log(`📊 ${table}: ${result.rows[0].count} records`);
+      } catch (err) {
+        console.error(`❌ Error checking table ${table}:`, err.message);
+      }
     }
 
     // Commit the transaction
