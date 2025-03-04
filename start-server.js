@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const port = process.env.PORT || 5174;
+const PORT = process.env.PORT || 5174;
 
 // Enable CORS for all origins during development
 app.use(cors());
@@ -1866,7 +1866,44 @@ app.get('/dashboard', async (req, res) => {
   }
 });
 
-const PORT = 5174;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`); 
+// Create a more robust server startup
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use. Please try a different port.`);
+  } else {
+    console.error('❌ Server error:', err);
+  }
+  process.exit(1);
+});
+
+// Add error handling for uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+  server.close(() => {
+    process.exit(1);
+  });
+});
+
+// Add error handling for unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('❌ Unhandled Promise Rejection:', err);
+  server.close(() => {
+    process.exit(1);
+  });
+});
+
+// Add error handling for database connection
+pool.on('error', (err) => {
+  console.error('❌ Unexpected database error:', err);
+  if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+    console.error('Database connection was closed.');
+  }
+  if (err.code === 'ER_CON_COUNT_ERROR') {
+    console.error('Database has too many connections.');
+  }
+  if (err.code === 'ECONNREFUSED') {
+    console.error('Database connection was refused.');
+  }
 }); 
