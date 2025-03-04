@@ -52,6 +52,25 @@ const initDatabase = async () => {
     
     console.log('Starting database initialization...');
     
+    // First, drop all existing tables to ensure clean state
+    try {
+      await client.query(`
+        DROP TABLE IF EXISTS 
+          student_grade, 
+          class_student, 
+          class_subject,
+          student,
+          teacher,
+          subject,
+          class,
+          school_year,
+          users CASCADE
+      `);
+      console.log('Cleaned up existing tables');
+    } catch (err) {
+      console.log('Error during cleanup:', err.message);
+    }
+    
     for (let statement of statements) {
       try {
         // Skip CREATE DATABASE statement as we're already connected
@@ -60,62 +79,27 @@ const initDatabase = async () => {
           continue;
         }
 
-        // Handle schema modifications first
+        // Execute the statement
+        await client.query(statement);
+        
+        // Log success based on statement type
         if (statement.toLowerCase().includes('create table')) {
-          try {
-            await client.query(statement);
-            console.log('Created table successfully:', statement.split('(')[0]);
-          } catch (err) {
-            if (err.code === '42P07') { // Table exists
-              console.log('Table already exists:', statement.split('(')[0]);
-            } else {
-              console.error('Error creating table:', err.message);
-            }
-          }
-          continue;
-        }
-
-        // Handle data insertions
-        if (statement.toLowerCase().includes('insert into')) {
-          try {
-            await client.query(statement);
-            console.log('Inserted data successfully');
-          } catch (err) {
-            switch (err.code) {
-              case '23505': // Unique violation
-                console.log(`Skipping duplicate record: ${err.detail}`);
-                break;
-              case '23503': // Foreign key violation
-                console.log(`Skipping record with invalid foreign key: ${err.detail}`);
-                break;
-              case '42703': // Undefined column
-                console.log(`Column error: ${err.message}`);
-                break;
-              case '42P01': // Undefined table
-                console.log(`Table error: ${err.message}`);
-                break;
-              case '23514': // Check constraint violation
-                console.log(`Check constraint violation: ${err.detail}`);
-                break;
-              default:
-                console.log(`Other error (${err.code}): ${err.message}`);
-                break;
-            }
-          }
-          continue;
-        }
-
-        // For all other statements
-        try {
-          await client.query(statement);
+          console.log('Created table:', statement.split('(')[0].replace(/CREATE TABLE/i, '').trim());
+        } else if (statement.toLowerCase().includes('insert into')) {
+          console.log('Inserted data into:', statement.split('(')[0].replace(/INSERT INTO/i, '').trim());
+        } else {
           console.log('Executed statement successfully');
-        } catch (err) {
-          console.log(`Warning during execution: ${err.message}`);
         }
       } catch (err) {
-        console.log(`Error executing statement: ${err.message}`);
+        console.error('Error executing statement:', err.message);
+        console.error('Problematic statement:', statement);
+        throw err; // Rethrow to trigger rollback
       }
     }
+
+    // Verify the data
+    const studentCount = await client.query('SELECT COUNT(*) FROM student');
+    console.log(`Verified student count: ${studentCount.rows[0].count}`);
 
     // Commit the transaction
     await client.query('COMMIT');
