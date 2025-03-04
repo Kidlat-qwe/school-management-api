@@ -33,8 +33,8 @@ module.exports = pool;
 // Initialize database
 const initDatabase = async () => {
   try {
-    const gradeSQL = fs.readFileSync(path.join(__dirname, 'grade.sql'), 'utf8');
-    await pool.query(gradeSQL);
+    const initSQL = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf8');
+    await pool.query(initSQL);
     console.log('✅ Database initialized successfully!');
   } catch (error) {
     console.error('❌ Error initializing database:', error);
@@ -1239,16 +1239,11 @@ app.get('/', (req, res) => {
         .form-group {
           margin: 10px 0;
         }
-        input, button, select {
+        input, button {
           margin: 5px 0;
           padding: 4px 8px;
           border: 1px solid #ddd;
           border-radius: 4px;
-        }
-        select {
-          width: 100%;
-          height: 30px;
-          background-color: white;
         }
         button {
           background: #3498db;
@@ -1309,7 +1304,7 @@ app.get('/', (req, res) => {
           background: #c0392b;
         }
         
-        .form-group input, .form-group select {
+        .form-group input {
           width: calc(100% - 16px);
           margin: 4px 0;
         }
@@ -1388,29 +1383,6 @@ app.get('/', (req, res) => {
           border: 1px solid #ddd;
           border-radius: 4px;
           margin-top: 5px;
-        }
-        
-        /* Table styles */
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 15px;
-        }
-        
-        th {
-          background-color: #f2f2f2;
-          text-align: left;
-          padding: 8px;
-          border-bottom: 2px solid #ddd;
-        }
-        
-        td {
-          padding: 8px;
-          border-bottom: 1px solid #eee;
-        }
-        
-        tr:hover {
-          background-color: #f5f5f5;
         }
       </style>
     </head>
@@ -1648,131 +1620,21 @@ app.get('/', (req, res) => {
         async function fetchTeachers() {
           const responseElement = document.getElementById('teachersResponse');
           responseElement.style.display = 'block';
-          responseElement.innerHTML = '<p>Loading teachers...</p>';
-          
           const result = await apiCall('/api/teachers');
-          
-          if (result.success && result.data && result.data.length > 0) {
-            // Format the data as a table for better readability
-            let tableHtml = '<table style="width:100%; border-collapse: collapse;">' +
-              '<thead>' +
-                '<tr>' +
-                  '<th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">ID</th>' +
-                  '<th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Name</th>' +
-                  '<th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Gender</th>' +
-                  '<th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Status</th>' +
-                  '<th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Classes</th>' +
-                '</tr>' +
-              '</thead>' +
-              '<tbody>';
-            
-            result.data.forEach(teacher => {
-              tableHtml += '<tr>' +
-                '<td style="padding:8px; border-bottom:1px solid #eee;">' + teacher.teacher_id + '</td>' +
-                '<td style="padding:8px; border-bottom:1px solid #eee;">' + teacher.fname + ' ' + (teacher.mname ? teacher.mname + ' ' : '') + teacher.lname + '</td>' +
-                '<td style="padding:8px; border-bottom:1px solid #eee;">' + teacher.gender + '</td>' +
-                '<td style="padding:8px; border-bottom:1px solid #eee;">' + (teacher.status || 'ACTIVE') + '</td>' +
-                '<td style="padding:8px; border-bottom:1px solid #eee;">' + (teacher.assigned_classes || 0) + '</td>' +
-              '</tr>';
-            });
-            
-            tableHtml += '</tbody>' +
-              '</table>' +
-              '<p>Total teachers: ' + result.data.length + '</p>';
-            
-            responseElement.innerHTML = tableHtml;
-          } else {
-            responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-          }
+          responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
         }
 
         async function addTeacher() {
-          const fname = document.getElementById('fname').value;
-          const mname = document.getElementById('mname').value;
-          const lname = document.getElementById('lname').value;
-          const gender = document.getElementById('gender').value;
-          const teacherId = document.getElementById('teacherId').value;
-          
-          // Validate required fields
-          if (!fname || !lname || !gender) {
-            alert('Please fill in all required fields (First Name, Last Name, Gender)');
-            return;
-          }
-          
-          confirmAdd('teacher', async () => {
-            const body = {
-              teacherId: teacherId || undefined,
-              fname,
-              mname,
-              lname,
-              gender,
-              status: 'ACTIVE'
-            };
-            
-            const responseElement = document.getElementById('addTeacherResponse');
-            responseElement.style.display = 'block';
-            responseElement.innerHTML = '<p>Adding teacher...</p>';
-            
-            const result = await apiCall('/api/teachers', 'POST', body);
-            
-            if (result.success) {
-              responseElement.innerHTML = '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
-              // Clear form fields
-              document.getElementById('fname').value = '';
-              document.getElementById('mname').value = '';
-              document.getElementById('lname').value = '';
-              document.getElementById('gender').value = '';
-              document.getElementById('teacherId').value = '';
-              // Refresh the teachers list
-              fetchTeachers();
-            } else {
-              responseElement.innerHTML = '<p style="color:red">Error: ' + (result.error || 'Failed to add teacher') + '</p>';
-            }
-          });
-        }
-        
-        async function fetchTeacherAssignments() {
-          const teacherId = document.getElementById('teacherIdForAssignments').value;
-          
-          if (!teacherId) {
-            alert('Please enter a Teacher ID');
-            return;
-          }
-          
-          const responseElement = document.getElementById('teacherAssignmentsResponse');
-          responseElement.style.display = 'block';
-          responseElement.innerHTML = '<p>Loading assignments...</p>';
-          
-          const result = await apiCall('/api/teachers/' + teacherId + '/assignments');
-          
-          if (result.success && result.data && result.data.length > 0) {
-            // Format the data as a table for better readability
-            let tableHtml = '<table style="width:100%; border-collapse: collapse;">' +
-              '<thead>' +
-                '<tr>' +
-                  '<th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Class</th>' +
-                  '<th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Subject</th>' +
-                  '<th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">School Year</th>' +
-                '</tr>' +
-              '</thead>' +
-              '<tbody>';
-            
-            result.data.forEach(assignment => {
-              tableHtml += '<tr>' +
-                '<td style="padding:8px; border-bottom:1px solid #eee;">Grade ' + assignment.grade_level + '-' + assignment.section + '</td>' +
-                '<td style="padding:8px; border-bottom:1px solid #eee;">' + assignment.subject_name + '</td>' +
-                '<td style="padding:8px; border-bottom:1px solid #eee;">' + assignment.school_year + '</td>' +
-              '</tr>';
-            });
-            
-            tableHtml += '</tbody>' +
-              '</table>' +
-              '<p>Total assignments: ' + result.data.length + '</p>';
-            
-            responseElement.innerHTML = tableHtml;
-          } else {
-            responseElement.innerHTML = '<p>No assignments found for this teacher</p>';
-          }
+          const body = {
+            teacherId: document.getElementById('teacherId').value,
+            fname: document.getElementById('fname').value,
+            mname: document.getElementById('mname').value,
+            lname: document.getElementById('lname').value,
+            gender: document.getElementById('gender').value
+          };
+          const result = await apiCall('/api/teachers', 'POST', body);
+          document.getElementById('addTeacherResponse').innerHTML = 
+            '<pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
         }
 
         // Students
